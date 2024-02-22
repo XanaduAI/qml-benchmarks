@@ -1,0 +1,4 @@
+hyperparameter,best_value
+max_vmap,1
+n_episodes,100
+n_qfeatures,half
