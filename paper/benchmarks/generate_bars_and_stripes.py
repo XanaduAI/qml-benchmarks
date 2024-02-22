@@ -18,7 +18,7 @@ import os
 import numpy as np
 from qml_benchmarks.data import generate_bars_and_stripes
 
-os.makedirs("paper/benchmarks/bars_and_stripes", exist_ok=True)
+os.makedirs("bars_and_stripes", exist_ok=True)
 
 n_samples_train = 1000
 n_samples_test = 200
@@ -36,10 +36,10 @@ for size in [4, 8, 16, 32]:
     )
     X_test, y_test = generate_bars_and_stripes(n_samples_test, height, width, noise_std)
 
-    path_train = f"paper/benchmarks/bars_and_stripes/bars_and_stripes_{height}_x_{width}_{noise_std}noise_train.csv"
+    path_train = f"bars_and_stripes/bars_and_stripes_{height}_x_{width}_{noise_std}noise_train.csv"
     data_train = np.c_[np.reshape(X_train, [n_samples_train, -1]), y_train]
     np.savetxt(path_train, data_train, delimiter=",")
 
-    path_test = f"paper/benchmarks/bars_and_stripes/bars_and_stripes_{height}_x_{width}_{noise_std}noise_test.csv"
+    path_test = f"bars_and_stripes/bars_and_stripes_{height}_x_{width}_{noise_std}noise_test.csv"
     data_test = np.c_[np.reshape(X_test, [n_samples_test, -1]), y_test]
     np.savetxt(path_test, data_test, delimiter=",")

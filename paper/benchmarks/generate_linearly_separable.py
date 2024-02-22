@@ -21,7 +21,7 @@ from qml_benchmarks.data import generate_linearly_separable
 
 np.random.seed(42)
 
-os.makedirs("paper/benchmarks/linearly_separable", exist_ok=True)
+os.makedirs("linearly_separable", exist_ok=True)
 
 n_samples = 300
 
@@ -31,10 +31,10 @@ for n_features in range(2, 21):
     X, y = generate_linearly_separable(n_samples, n_features, margin)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-    name_train = f"paper/benchmarks/linearly_separable/linearly_separable_{n_features}d_train.csv"
+    name_train = f"linearly_separable/linearly_separable_{n_features}d_train.csv"
     data_train = np.c_[X_train, y_train]
     np.savetxt(name_train, data_train, delimiter=",")
 
-    name_test = f"paper/benchmarks/linearly_separable/linearly_separable_{n_features}d_test.csv"
+    name_test = f"linearly_separable/linearly_separable_{n_features}d_test.csv"
     data_test = np.c_[X_test, y_test]
     np.savetxt(name_test, data_test, delimiter=",")
