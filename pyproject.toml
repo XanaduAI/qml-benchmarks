@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qml_benchmarks"
+version = "0.1"
+description = "A package to benchmark quantum machine learning models"
+authors = [{name = "QML Team XanaduAI"}]
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy",
+    "pennylane",
+    "scikit_learn",
+    "matplotlib",
+    "jax",
+    "jaxlib",
+    "flax",
+    "optax",
+    "typing-extensions",
+    "pyyaml",
+    "pandas",
+    "seaborn",
+    "scipy"
+]
+

@@ -1,0 +1,71 @@
+# Configuration file that gives every model a line style for plotting
+
+color:
+  CircuitCentricClassifier: "blue"
+  DataReuploadingClassifier: "dodgerblue"
+  DressedQuantumCircuitClassifier: "steelblue"
+  IQPVariationalClassifier: "royalblue"
+  QuantumMetricLearner: "darkmagenta"
+  ClassicalFourierMPS: "black"
+  MLPClassifier: "black"
+  Perceptron: "black"
+  QuanvolutionalNeuralNetwork: "darkgreen"
+  WeiNet: "olivedrab"
+  ConvolutionalNeuralNetwork: "black"
+  IQPKernelClassifier: "firebrick"
+  ProjectedQuantumKernel: "red"
+  QuantumKitchenSinks: "tomato"
+  QuantumBoltzmannMachine: "navy"
+  SVC: "black"
+  SVClinear: "black"
+  ParallelGradients: "cadetblue"
+  TreeTensorClassifier: 'darkgoldenrod'
+  SeparableVariationalClassifier: "teal"
+  SeparableKernelClassifier: "deeppink"
+
+marker:
+  CircuitCentricClassifier: "v"
+  DataReuploadingClassifier: "s"
+  DressedQuantumCircuitClassifier: "^"
+  IQPVariationalClassifier: ">"
+  QuantumMetricLearner: "p"
+  ClassicalFourierMPS: "h"
+  MLPClassifier: "D"
+  Perceptron: "P"
+  QuanvolutionalNeuralNetwork: "v"
+  WeiNet: "s"
+  ConvolutionalNeuralNetwork: "o"
+  IQPKernelClassifier: "v"
+  ProjectedQuantumKernel: "s"
+  QuantumKitchenSinks: "^"
+  QuantumBoltzmannMachine: 'X'
+  SVC: "d"
+  SVClinear: "H"
+  ParallelGradients: '*'
+  TreeTensorClassifier: '8'
+  SeparableVariationalClassifier: 'o'
+  SeparableKernelClassifier: 'o'
+
+dashes:
+  CircuitCentricClassifier: ()
+  DataReuploadingClassifier: ()
+  DressedQuantumCircuitClassifier: ()
+  IQPVariationalClassifier: ()
+  QuantumMetricLearner: ()
+  ClassicalFourierMPS: (3, 2)
+  MLPClassifier: (3, 2)
+  Perceptron: (3, 2)
+  QuantumConvolutionalNN: ()
+  QuanvolutionalNeuralNetwork: ()
+  ConvolutionalNeuralNetwork: (3, 2)
+  IQPKernelClassifier: ()
+  ProjectedQuantumKernel: ()
+  QuantumKitchenSinks: ()
+  QuantumBoltzmannMachine: ()
+  SVC: (3, 2)
+  SVClinear: (3, 2)
+  WeiNet: ()
+  ParallelGradients: ()
+  TreeTensorClassifier: ()
+  SeparableVariationalClassifier: ()
+  SeparableKernelClassifier: ()
