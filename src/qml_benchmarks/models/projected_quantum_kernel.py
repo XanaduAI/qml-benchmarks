@@ -138,11 +138,11 @@ class ProjectedQuantumKernel(BaseEstimator, ClassifierMixin):
                         self.rotation_angles_[i, 2],
                         wires=i,
                     )
-                    for __ in range(self.trotter_steps):
-                        for j in range(self.n_qubits_ - 1):
-                            qml.IsingXX(x[j] * evol_time, wires=[j, j + 1])
-                            qml.IsingYY(x[j] * evol_time, wires=[j, j + 1])
-                            qml.IsingZZ(x[j] * evol_time, wires=[j, j + 1])
+                for __ in range(self.trotter_steps):
+                    for j in range(self.n_qubits_ - 1):
+                        qml.IsingXX(x[j] * evol_time, wires=[j, j + 1])
+                        qml.IsingYY(x[j] * evol_time, wires=[j, j + 1])
+                        qml.IsingZZ(x[j] * evol_time, wires=[j, j + 1])
 
         dev = qml.device(self.dev_type, wires=self.n_qubits_)
 
