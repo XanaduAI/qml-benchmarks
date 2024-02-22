@@ -1,0 +1,6 @@
+hyperparameter,best_value
+batch_size,32
+learning_rate,0.1
+max_vmap,1
+n_input_copies,2
+n_layers,5

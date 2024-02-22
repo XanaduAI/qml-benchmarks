@@ -1,0 +1,4 @@
+hyperparameter,best_value
+batch_size,32
+kernel_shape,3
+learning_rate,0.01
