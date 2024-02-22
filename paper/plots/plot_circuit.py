@@ -90,5 +90,5 @@ for clf in models_to_plot:
             clf.circuit, style=style, fontsize="xx-large", decimals=1
         )(clf.params_, x)
 
-    plt.savefig(f"figures/circuit-{clf.__class__.__name__}.svg")
+    plt.savefig(f"figures/circuit-{clf.__class__.__name__}.png")
     plt.show()
