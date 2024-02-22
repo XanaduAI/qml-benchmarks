@@ -21,7 +21,7 @@ from qml_benchmarks.data import generate_hyperplanes_parity
 
 np.random.seed(1)
 
-os.makedirs("paper/benchmarks/hyperplanes_diff", exist_ok=True)
+os.makedirs("hyperplanes_diff", exist_ok=True)
 
 n_features = 10
 dim_hyperplanes = 3
@@ -35,10 +35,10 @@ for n_hyperplanes in range(2, 21):
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-    name_train = f"paper/benchmarks/hyperplanes_diff/hyperplanes-10d-from{dim_hyperplanes}d-{n_hyperplanes}n_train.csv"
+    name_train = f"hyperplanes_diff/hyperplanes-10d-from{dim_hyperplanes}d-{n_hyperplanes}n_train.csv"
     data_train = np.c_[X_train, y_train]
     np.savetxt(name_train, data_train, delimiter=",")
 
-    name_test = f"paper/benchmarks/hyperplanes_diff/hyperplanes-10d-from{dim_hyperplanes}d-{n_hyperplanes}n_test.csv"
+    name_test = f"hyperplanes_diff/hyperplanes-10d-from{dim_hyperplanes}d-{n_hyperplanes}n_test.csv"
     data_test = np.c_[X_test, y_test]
     np.savetxt(name_test, data_test, delimiter=",")

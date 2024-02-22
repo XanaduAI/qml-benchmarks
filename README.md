@@ -10,7 +10,7 @@ and [scikit-learn](https://scikit-learn.org/) for the benchmarking workflows.
 Version 0.1 of the code can be used to reproduce the results in the study 
 "Better than classical? The subtle art of benchmarking quantum machine learning models".
 
-# Content
+## Overview
 
 A short summary of the various folders in this repository is as follows:
 - `paper`: contains code and results to reproduce the results in the paper
