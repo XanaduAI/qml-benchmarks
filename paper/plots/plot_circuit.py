@@ -20,6 +20,8 @@ import os
 os.makedirs("figures", exist_ok=True)
 from qml_benchmarks.models import *
 
+style = "black_white"
+
 models_to_plot = [
     CircuitCentricClassifier(),
     DataReuploadingClassifier(),
@@ -69,23 +71,23 @@ for clf in models_to_plot:
         "WeiNet",
     ]:
         fig, ax = qml.draw_mpl(
-            clf.circuit, style="pennylane_sketch", fontsize="xx-large", decimals=1
+            clf.circuit, style=style, fontsize="xx-large", decimals=1
         )(x)
     elif clf_name == "QuantumMetricLearner":
         fig, ax = qml.draw_mpl(
-            clf.circuit, style="pennylane_sketch", fontsize="xx-large", decimals=1
+            clf.circuit, style=style, fontsize="xx-large", decimals=1
         )(clf.params_, x, x)
     elif clf_name == "SeparableVariationalClassifier":
         fig, ax = qml.draw_mpl(
-            clf.circuit, style="pennylane_sketch", fontsize="xx-large", decimals=1
+            clf.circuit, style=style, fontsize="xx-large", decimals=1
         )(clf.params_["weights"][0], x[0])
     elif clf_name == "SeparableKernelClassifier":
         fig, ax = qml.draw_mpl(
-            clf.circuit, style="pennylane_sketch", fontsize="xx-large", decimals=1
+            clf.circuit, style=style, fontsize="xx-large", decimals=1
         )(jnp.stack([x[0], x[0]]))
     else:
         fig, ax = qml.draw_mpl(
-            clf.circuit, style="pennylane_sketch", fontsize="xx-large", decimals=1
+            clf.circuit, style=style, fontsize="xx-large", decimals=1
         )(clf.params_, x)
 
     plt.savefig(f"figures/circuit-{clf.__class__.__name__}.svg")

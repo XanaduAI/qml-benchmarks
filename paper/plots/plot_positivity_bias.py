@@ -28,6 +28,8 @@ sns.set(rc={"figure.figsize": (8, 3)})
 sns.set(font_scale=1.5)
 sns.set_style("white")
 
+palette = sns.color_palette('deep')
+
 mean_quantum = 0.55
 scale_quantum = 0.1
 mean_class = 0.65
@@ -58,15 +60,15 @@ mx = max(
 plt.fill_between(
     x_axis,
     norm.pdf(x_axis, mean_quantum, scale_quantum),
-    color="blue",
-    alpha=0.3,
+    color=palette[0],
+    alpha=0.5,
     label="true quantum (pdf)",
 )
 bias_quantum = np.mean([s[0] for s in stats_bias])
 plt.plot(
     [bias_quantum, bias_quantum],
     [0, mx],
-    color="blue",
+    color=palette[0],
     linestyle="--",
     label="biased quantum (mean)",
 )
@@ -74,15 +76,15 @@ plt.plot(
 plt.fill_between(
     x_axis,
     norm.pdf(x_axis, mean_class, scale_class),
-    color="red",
-    alpha=0.3,
+    color=palette[1],
+    alpha=0.5,
     label="true classical (pdf)",
 )
 bias_class = np.mean([s[1] for s in stats_bias])
 plt.plot(
     [bias_class, bias_class],
     [0, mx],
-    color="red",
+    color=palette[1],
     linestyle="--",
     label="true classical (mean)",
 )

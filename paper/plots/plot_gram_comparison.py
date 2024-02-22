@@ -15,7 +15,7 @@
 Script to reproduce Fig. 17 from the plots, comparing different Gram matrices.
 """
 
-import pickle
+import csv
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -28,6 +28,25 @@ from qml_benchmarks.hyperparam_search_utils import read_data
 sns.set(rc={"figure.figsize": (6, 6)})
 sns.set(font_scale=1.0)
 sns.set_style("white")
+
+def csv_to_dict(file_path):
+    dict = {}
+    with open(file_path, 'r') as csvfile:
+        csvreader = csv.reader(csvfile)
+        # Skip the first line
+        next(csvreader)
+        for row in csvreader:
+            hyperparameter, value = row
+            # Check if the value is numeric and convert it to int or float accordingly
+            try:
+                if '.' in value:
+                    value = float(value)
+                else:
+                    value = int(value)
+            except ValueError:
+                pass  # If conversion is not possible, keep the value as a string
+            dict[hyperparameter] = value
+    return dict
 
 
 def rbf_kernel(X1, X2, gamma):
@@ -65,7 +84,7 @@ datasets = {
     ],
     "linearly-separable": [
         "../benchmarks/linearly_separable/",
-        "../results/linearly-separable",
+        "../results/linearly_separable",
         "linearly_separable_",
         "d",
         "LINEARLY SEPARABLE",
@@ -132,10 +151,10 @@ for dataname, (
             + model_name
             + "_"
             + dataset_name
-            + "_GridSearchCV-best-hyperparams.pickle"
+            + "_GridSearchCV-best-hyperparams.csv"
         )
-        file = open(hyperparams_path, "rb")
-        best_hyperparams = pickle.load(file)
+
+        best_hyperparams = csv_to_dict(hyperparams_path)
         clf = models.IQPKernelClassifier(**best_hyperparams)
         clf.initialize(n_features=k)
         X = clf.transform(X)
@@ -150,10 +169,9 @@ for dataname, (
             + model_name
             + "_"
             + dataset_name
-            + "_GridSearchCV-best-hyperparams.pickle"
+            + "_GridSearchCV-best-hyperparams.csv"
         )
-        file = open(hyperparams_path, "rb")
-        best_hyperparams = pickle.load(file)
+        best_hyperparams = csv_to_dict(hyperparams_path)
         clf = models.ProjectedQuantumKernel(**best_hyperparams)
         clf.initialize(n_features=k)
         X = clf.transform(X)
@@ -168,10 +186,9 @@ for dataname, (
             + model_name
             + "_"
             + dataset_name
-            + "_GridSearchCV-best-hyperparams.pickle"
+            + "_GridSearchCV-best-hyperparams.csv"
         )
-        file = open(hyperparams_path, "rb")
-        best_hyperparams = pickle.load(file)
+        best_hyperparams = csv_to_dict(hyperparams_path)
         clf = models.SeparableKernelClassifier(**best_hyperparams)
         clf.initialize(n_features=k)
         X = clf.transform(X)
@@ -186,10 +203,9 @@ for dataname, (
             + model_name
             + "_"
             + dataset_name
-            + "_GridSearchCV-best-hyperparams.pickle"
+            + "_GridSearchCV-best-hyperparams.csv"
         )
-        file = open(hyperparams_path, "rb")
-        best_hyperparams = pickle.load(file)
+        best_hyperparams = csv_to_dict(hyperparams_path)
         gamma = best_hyperparams["gamma"]
         gram_svc = np.squeeze(rbf_kernel(X, X, gamma))
 
@@ -202,10 +218,9 @@ for dataname, (
             + model_name
             + "_"
             + dataset_name
-            + "_GridSearchCV-best-hyperparams.pickle"
+            + "_GridSearchCV-best-hyperparams.csv"
         )
-        file = open(hyperparams_path, "rb")
-        best_hyperparams = pickle.load(file)
+        best_hyperparams = csv_to_dict(hyperparams_path)
         clf = models.QuantumKitchenSinks(**best_hyperparams)
         clf.initialize(n_features=k)
         X = clf.transform(X)

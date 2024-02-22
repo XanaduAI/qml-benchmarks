@@ -2,20 +2,21 @@ from qml_benchmarks.hyperparam_search_utils import read_data
 import matplotlib.pyplot as plt
 import numpy as np
 from qml_benchmarks.models.quanvolutional_neural_network import QuanvolutionalNeuralNetwork
+import seaborn as sns
 
 #### mnist_cg data plot
 
 # note: you need to download the mnist_cg data
-X32,y32 = read_data("../benchmarks/mnist_cg/mnist_pixels_3-5_32x32_train.csv")
+X32,y32 = read_data("datasets-for-plots/mnist_cg/mnist_pixels_3-5_32x32_train-20.csv")
 X32 = np.reshape(X32, (X32.shape[0], 32, 32))
 
-X16,y16 = read_data("../benchmarks/mnist_cg/mnist_pixels_3-5_16x16_train.csv")
+X16,y16 = read_data("datasets-for-plots/mnist_cg/mnist_pixels_3-5_16x16_train-20.csv")
 X16 = np.reshape(X16, (X16.shape[0], 16, 16))
 
-X8,y8 = read_data("../benchmarks/mnist_cg/mnist_pixels_3-5_8x8_train.csv")
+X8,y8 = read_data("datasets-for-plots/mnist_cg/mnist_pixels_3-5_8x8_train-20.csv")
 X8 = np.reshape(X8, (X16.shape[0], 8, 8))
 
-X4,y4 = read_data("../benchmarks/mnist_cg/mnist_pixels_3-5_4x4_train.csv")
+X4,y4 = read_data("datasets-for-plots/mnist_cg/mnist_pixels_3-5_4x4_train-20.csv")
 X4 = np.reshape(X4, (X4.shape[0], 4, 4))
 
 
@@ -41,7 +42,7 @@ plt.savefig('figures/mnist_cg.png')
 
 plt.clf()
 
-X,y = read_data('../benchmarks/bars_and_stripes/bars_and_stripes_16_x_16_0.5noise_train.csv')
+X,y = read_data('datasets-for-plots/bars_and_stripes/bars_and_stripes_16_x_16_0.5noise.csv')
 fig, axes = plt.subplots(ncols=4, figsize=(8,8))
 
 axes[0].axis('off')
@@ -59,8 +60,7 @@ plt.savefig('figures/bars_and_stripes.png', bbox_inches='tight')
 
 plt.clf()
 
-X,y = read_data("../benchmarks/mnist_cg/mnist_pixels_3-5_16x16_train.csv")
-X_test,y_test = read_data("../benchmarks/mnist_cg/mnist_pixels_3-5_16x16_test.csv")
+X,y = read_data("datasets-for-plots/mnist_cg/mnist_pixels_3-5_16x16_train-20.csv")
 
 model = QuanvolutionalNeuralNetwork(n_qchannels=3)
 model.initialize(16*16)

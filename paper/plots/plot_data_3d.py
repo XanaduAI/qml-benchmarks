@@ -18,6 +18,10 @@ Script to reproduce the 3d plots in Fig. 5 in the plots.
 import matplotlib
 import matplotlib.pyplot as plt
 import os
+import seaborn as sns
+
+# Set the Seaborn color palette
+palette = sns.color_palette("deep")
 
 os.makedirs("figures", exist_ok=True)
 from mpl_toolkits import mplot3d
@@ -94,32 +98,32 @@ for path, out_name, dims in paths:
         X_train_pos[:, dim1],
         X_train_pos[:, dim2],
         X_train_pos[:, dim3],
-        marker="^",
-        c="blue",
+        marker=".",
+        c=palette[0],
         label="train 1",
     )
     ax.scatter3D(
         X_train_neg[:, dim1],
         X_train_neg[:, dim2],
         X_train_neg[:, dim3],
-        marker="^",
-        c="red",
+        marker=".",
+        c=palette[1],
         label="train -1",
     )
     ax.scatter3D(
         X_test_pos[:, dim1],
         X_test_pos[:, dim2],
         X_test_pos[:, dim3],
-        marker="o",
-        c="blue",
+        marker="x",
+        c=palette[0],
         label="test 1",
     )
     ax.scatter3D(
         X_test_neg[:, dim1],
         X_test_neg[:, dim2],
         X_test_neg[:, dim3],
-        marker="o",
-        c="red",
+        marker="x",
+        c=palette[1],
         label="test -1",
     )
 

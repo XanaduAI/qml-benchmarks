@@ -54,22 +54,22 @@ for seed in [42, 44]:
     pred = clf.predict(X_test)
 
     # create figure
-    cm = plt.cm.RdBu
-    cm_bright = ListedColormap(["#FF0000", "#0000FF"])
+    cmap = sns.diverging_palette(30, 255, l=60, as_cmap=True)
+    ax = plt.subplot(1, 1, 1)
     ax = plt.subplot(1, 1, 1)
 
     # plot the decision regions
-    DecisionBoundaryDisplay.from_estimator(clf, X, cmap=cm, alpha=0.8, ax=ax, eps=0.5)
+    DecisionBoundaryDisplay.from_estimator(clf, X, cmap=cmap, alpha=0.8, ax=ax, eps=0.5)
     # plot the training points
     ax.scatter(
-        X_train[:, 0], X_train[:, 1], c=y_train, cmap=cm_bright, s=70, edgecolors="k"
+        X_train[:, 0], X_train[:, 1], c=y_train, cmap=cmap, s=70, edgecolors="k"
     )
     # plot the testing points
     ax.scatter(
         X_test[:, 0],
         X_test[:, 1],
         c=y_test,
-        cmap=cm_bright,
+        cmap=cmap,
         marker="^",
         s=70,
         edgecolors="k",

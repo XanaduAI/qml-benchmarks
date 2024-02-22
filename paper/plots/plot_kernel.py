@@ -15,7 +15,7 @@
 """
 Script to reproduce Fig. 16 in the plots, showing the shapes of different kernels in 2d.
 """
-import pickle
+import csv
 import seaborn as sns
 import numpy as np
 from matplotlib import cm
@@ -29,6 +29,26 @@ sns.set(rc={"figure.figsize": (11.5, 4)})
 sns.set(font_scale=1.3)
 sns.set_style("white")
 
+cmap = sns.diverging_palette(30, 255, l=60, as_cmap=True)
+
+def csv_to_dict(file_path):
+    dict = {}
+    with open(file_path, 'r') as csvfile:
+        csvreader = csv.reader(csvfile)
+        # Skip the first line
+        next(csvreader)
+        for row in csvreader:
+            hyperparameter, value = row
+            # Check if the value is numeric and convert it to int or float accordingly
+            try:
+                if '.' in value:
+                    value = float(value)
+                else:
+                    value = int(value)
+            except ValueError:
+                pass  # If conversion is not possible, keep the value as a string
+            dict[hyperparameter] = value
+    return dict
 
 def linear_kernel(X1, X2):
     K = np.zeros(shape=(len(X1), len(X2)))
@@ -95,10 +115,9 @@ for dataname, (
         + model_name
         + "_"
         + dataset_name
-        + "_GridSearchCV-best-hyperparams.pickle"
+        + "_GridSearchCV-best-hyperparams.csv"
     )
-    file = open(hyperparams_path, "rb")
-    best_hyperparams = pickle.load(file)
+    best_hyperparams = csv_to_dict(hyperparams_path)
     gamma = best_hyperparams["gamma"]
     Z_flat = np.squeeze(rbf_kernel(zero_point, grid_flat, gamma))
     Z_flat = (Z_flat - Z_flat.min()) / (Z_flat.max() - Z_flat.min())
@@ -107,7 +126,7 @@ for dataname, (
     ax = fig.add_subplot(1, 5, 1, projection="3d")
     ax.set_zorder(5)
     surf = ax.plot_surface(
-        X_mesh, Y_mesh, Z, cmap=cm.coolwarm, linewidth=0, antialiased=False
+        X_mesh, Y_mesh, Z, cmap=cmap, linewidth=0, antialiased=False
     )
     ax.set_title(f"Support\n Vector\n Classifier")
 
@@ -120,10 +139,9 @@ for dataname, (
         + model_name
         + "_"
         + dataset_name
-        + "_GridSearchCV-best-hyperparams.pickle"
+        + "_GridSearchCV-best-hyperparams.csv"
     )
-    file = open(hyperparams_path, "rb")
-    best_hyperparams = pickle.load(file)
+    best_hyperparams = csv_to_dict(hyperparams_path)
     clf = models.SeparableKernelClassifier(**best_hyperparams)
     clf.initialize(n_features=2)
     grid_flat_trans = clf.transform(grid_flat)
@@ -135,7 +153,7 @@ for dataname, (
     ax = fig.add_subplot(1, 5, 2, projection="3d")
     ax.set_zorder(4)
     surf = ax.plot_surface(
-        X_mesh, Y_mesh, Z, cmap=cm.coolwarm, linewidth=0, antialiased=False
+        X_mesh, Y_mesh, Z, cmap=cmap, linewidth=0, antialiased=False
     )
     ax.set_title(f"Separable\n Kernel\n Classifier")
 
@@ -148,10 +166,9 @@ for dataname, (
         + model_name
         + "_"
         + dataset_name
-        + "_GridSearchCV-best-hyperparams.pickle"
+        + "_GridSearchCV-best-hyperparams.csv"
     )
-    file = open(hyperparams_path, "rb")
-    best_hyperparams = pickle.load(file)
+    best_hyperparams = csv_to_dict(hyperparams_path)
     clf = models.IQPKernelClassifier(**best_hyperparams)
     clf.initialize(n_features=2)
     grid_flat_trans = clf.transform(grid_flat)
@@ -163,7 +180,7 @@ for dataname, (
     ax = fig.add_subplot(1, 5, 3, projection="3d")
     ax.set_zorder(3)
     surf = ax.plot_surface(
-        X_mesh, Y_mesh, Z, cmap=cm.coolwarm, linewidth=0, antialiased=False
+        X_mesh, Y_mesh, Z, cmap=cmap, linewidth=0, antialiased=False
     )
     ax.set_title(f"IQP\n Kernel\n Classifier")
 
@@ -176,10 +193,9 @@ for dataname, (
         + model_name
         + "_"
         + dataset_name
-        + "_GridSearchCV-best-hyperparams.pickle"
+        + "_GridSearchCV-best-hyperparams.csv"
     )
-    file = open(hyperparams_path, "rb")
-    best_hyperparams = pickle.load(file)
+    best_hyperparams = csv_to_dict(hyperparams_path)
     clf = models.ProjectedQuantumKernel(**best_hyperparams)
     clf.initialize(n_features=2)
     grid_flat_trans = clf.transform(grid_flat)
@@ -191,7 +207,7 @@ for dataname, (
     ax = fig.add_subplot(1, 5, 4, projection="3d")
     ax.set_zorder(2)
     surf = ax.plot_surface(
-        X_mesh, Y_mesh, Z, cmap=cm.coolwarm, linewidth=0, antialiased=False
+        X_mesh, Y_mesh, Z, cmap=cmap, linewidth=0, antialiased=False
     )
     ax.set_title(f"Projected\n Quantum\n Kernel")
 
@@ -204,10 +220,9 @@ for dataname, (
         + model_name
         + "_"
         + dataset_name
-        + "_GridSearchCV-best-hyperparams.pickle"
+        + "_GridSearchCV-best-hyperparams.csv"
     )
-    file = open(hyperparams_path, "rb")
-    best_hyperparams = pickle.load(file)
+    best_hyperparams = csv_to_dict(hyperparams_path)
     clf = models.QuantumKitchenSinks(**best_hyperparams)
     clf.initialize(n_features=2)
     grid_flat_trans = clf.transform(grid_flat)
@@ -219,7 +234,7 @@ for dataname, (
     ax = fig.add_subplot(1, 5, 5, projection="3d")
     ax.set_zorder(1)
     surf = ax.plot_surface(
-        X_mesh, Y_mesh, Z, cmap=cm.coolwarm, linewidth=0, antialiased=False
+        X_mesh, Y_mesh, Z, cmap=cmap, linewidth=0, antialiased=False
     )
     ax.set_title(f"Quantum\n Kitchen\n Sinks")
 
