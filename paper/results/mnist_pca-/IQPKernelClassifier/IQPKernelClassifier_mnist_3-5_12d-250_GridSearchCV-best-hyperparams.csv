@@ -1,0 +1,4 @@
+hyperparameter,best_value
+C,10.0
+max_vmap,500
+repeats,1

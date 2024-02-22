@@ -1,0 +1,5 @@
+hyperparameter,best_value
+alpha,0.001
+batch_size,32
+hidden_layer_sizes,"(10, 10, 10, 10)"
+learning_rate_init,0.1
