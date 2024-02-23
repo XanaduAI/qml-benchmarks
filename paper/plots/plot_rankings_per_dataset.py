@@ -28,7 +28,7 @@ import numpy as np
 sns.set(font_scale=1.5)
 sns.set_style("white")
 
-
+cmap = sns.diverging_palette(30, 255, l=60, as_cmap=True)
 # Plot settings
 
 datasets = {
@@ -244,7 +244,7 @@ for dataset, (
             df_plot.plot.barh(
                 ax=ax,
                 stacked=True,
-                cmap="coolwarm_r",
+                cmap=cmap,
                 width=0.8,
                 legend=False,
                 edgecolor="None",

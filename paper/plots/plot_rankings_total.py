@@ -28,6 +28,8 @@ from collections import Counter
 sns.set(font_scale=1.3)
 sns.set_style("white")
 
+cmap = sns.diverging_palette(30, 255, l=60, as_cmap=True)
+
 # Plot settings
 
 datasets = {
@@ -208,7 +210,7 @@ for clf_family, ax in zip(clfs, axes):
     df_plot.plot.barh(
         ax=ax,
         stacked=True,
-        cmap="coolwarm_r",
+        cmap=cmap,
         width=0.8,
         legend=False,
         edgecolor="None",

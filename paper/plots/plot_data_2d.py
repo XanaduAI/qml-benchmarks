@@ -29,6 +29,9 @@ sns.set(rc={"figure.figsize": (3, 3)})
 sns.set(font_scale=1.3)
 sns.set_style("white")
 
+# Set the Seaborn color palette
+palette = sns.color_palette("deep")
+
 matplotlib.rcParams["axes.spines.right"] = False
 matplotlib.rcParams["axes.spines.top"] = False
 
@@ -61,10 +64,10 @@ for path, out_name in paths:
     fig = plt.figure()
     ax = plt.gca()
 
-    plt.scatter(X_train_pos[:, 0], X_train_pos[:, 1], marker="^", c="blue")
-    plt.scatter(X_train_neg[:, 0], X_train_neg[:, 1], marker="^", c="red")
-    plt.scatter(X_test_pos[:, 0], X_test_pos[:, 1], marker="o", c="blue")
-    plt.scatter(X_test_neg[:, 0], X_test_neg[:, 1], marker="o", c="red")
+    plt.scatter(X_train_pos[:, 0], X_train_pos[:, 1], marker=".", c=palette[0])
+    plt.scatter(X_train_neg[:, 0], X_train_neg[:, 1], marker=".", c=palette[1])
+    plt.scatter(X_test_pos[:, 0], X_test_pos[:, 1], marker="x", c=palette[0])
+    plt.scatter(X_test_neg[:, 0], X_test_neg[:, 1], marker="x", c=palette[1])
     plt.xticks([])
     plt.yticks([])
     plt.xlabel("$x_1$", fontsize=30)

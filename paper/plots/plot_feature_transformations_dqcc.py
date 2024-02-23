@@ -42,8 +42,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 x_min, x_max = X[:, 0].min() - 0.5, X[:, 0].max() + 0.5
 y_min, y_max = X[:, 1].min() - 0.5, X[:, 1].max() + 0.5
 
-cm = plt.cm.RdBu
-cm_bright = ListedColormap(["#FF0000", "#0000FF"])
+cmap = sns.diverging_palette(30, 255, l=60, as_cmap=True)
 
 # original model
 clf = DressedQuantumCircuitClassifier()
@@ -62,25 +61,25 @@ X_train_after_second_nn = np.array(
 
 fig, axes = plt.subplots(1, 4, figsize=(8, 2))
 
-axes[0].scatter(X_train[:, 0], X_train[:, 1], c=y_train, cmap=cm_bright, s=8)
+axes[0].scatter(X_train[:, 0], X_train[:, 1], c=y_train, cmap=cmap, s=8)
 axes[0].set_title("original\n training data")
 axes[1].scatter(
     X_train_after_first_nn[:, 0],
     X_train_after_first_nn[:, 1],
     c=y_train,
-    cmap=cm_bright,
+    cmap=cmap,
     s=8,
 )
 axes[1].set_title("after first\n NN layer")
 axes[2].scatter(
-    X_train_after_qnn[:, 0], X_train_after_qnn[:, 1], c=y_train, cmap=cm_bright, s=8
+    X_train_after_qnn[:, 0], X_train_after_qnn[:, 1], c=y_train, cmap=cmap, s=8
 )
 axes[2].set_title("after\n quantum layer")
 axes[3].scatter(
     X_train_after_second_nn[:, 0],
     X_train_after_second_nn[:, 1],
     c=y_train,
-    cmap=cm_bright,
+    cmap=cmap,
     s=8,
 )
 axes[3].set_title("after second\n nn layer")
@@ -108,13 +107,13 @@ X_train_after_second_nn = np.array(
 
 fig, axes = plt.subplots(1, 4, figsize=(8, 2))
 
-axes[0].scatter(X_train[:, 0], X_train[:, 1], c=y_train, cmap=cm_bright, s=8)
+axes[0].scatter(X_train[:, 0], X_train[:, 1], c=y_train, cmap=cmap, s=8)
 axes[0].set_title("original\n training data")
 axes[1].scatter(
     X_train_after_first_nn[:, 0],
     X_train_after_first_nn[:, 1],
     c=y_train,
-    cmap=cm_bright,
+    cmap=cmap,
     s=8,
 )
 axes[1].set_title("after first\n NN layer")
@@ -122,7 +121,7 @@ axes[2].scatter(
     X_train_after_mid_nn[:, 0],
     X_train_after_mid_nn[:, 1],
     c=y_train,
-    cmap=cm_bright,
+    cmap=cmap,
     s=8,
 )
 axes[2].set_title("after second\n  NN layer")
@@ -130,7 +129,7 @@ axes[3].scatter(
     X_train_after_second_nn[:, 0],
     X_train_after_second_nn[:, 1],
     c=y_train,
-    cmap=cm_bright,
+    cmap=cmap,
     s=8,
 )
 axes[3].set_title("after third\n nn layer")

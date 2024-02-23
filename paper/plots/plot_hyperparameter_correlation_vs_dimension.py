@@ -35,6 +35,8 @@ sns.set(rc={"figure.figsize": (5.5, 4)})
 sns.set(font_scale=1.3)
 sns.set_style("white")
 
+# Set the Seaborn color palette
+palette = sns.color_palette("deep")
 
 def remove_files(folder_path):
     """_summary_
@@ -261,9 +263,9 @@ df = pd.DataFrame(
 datasets = ["MNIST PCA", "HIDDEN MANIFOLD DIFF", "LINEARLY SEPARABLE"]
 
 colors = {
-    "MNIST PCA": "black",
-    "HIDDEN MANIFOLD DIFF": "blue",
-    "LINEARLY SEPARABLE": "orange",
+    "MNIST PCA": palette[7],
+    "HIDDEN MANIFOLD DIFF": palette[0],
+    "LINEARLY SEPARABLE": palette[1],
 }
 
 markers = {"MNIST PCA": "o", "HIDDEN MANIFOLD DIFF": "x", "LINEARLY SEPARABLE": "s"}
@@ -305,7 +307,7 @@ for dataset in datasets:
             aggregated_df["Dim"],
             aggregated_df["Mean_Corr"] - aggregated_df["Std_Corr"],
             aggregated_df["Mean_Corr"] + aggregated_df["Std_Corr"],
-            alpha=0.2,
+            alpha=0.25,
             color=colors[dataset],
         )
 
@@ -313,7 +315,7 @@ plt.ylim(-1, 1)
 plt.xlim(2, 20)
 plt.xlabel("dimension")
 plt.ylabel("correlation")
-plt.legend(loc="lower left")
+plt.legend(loc="lower left",fontsize='x-small')
 plt.gca().xaxis.set_major_locator(MaxNLocator(integer=True))
 # Show the plot
 plt.grid()
