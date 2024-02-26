@@ -1,6 +1,0 @@
-hyperparameter,best_value
-batch_size,32
-learning_rate,0.01
-max_vmap,1
-temperature,10.0
-visible_qubits,single
