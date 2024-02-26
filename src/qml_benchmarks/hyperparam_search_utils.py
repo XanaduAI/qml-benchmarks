@@ -14,6 +14,7 @@
 
 """Utility functions for hyperparameter search"""
 
+import csv
 import numpy as np
 import pandas as pd
 
@@ -58,3 +59,28 @@ def construct_hyperparameter_grid(hyperparameter_settings, classifier_name):
                 hyperparameter_grid[hyperparam] = np.array(val, dtype=dtype)
 
     return hyperparameter_grid
+
+
+def csv_to_dict(file_path):
+    """Read a csv file and interpret the content as a dictionary.
+
+    Args:
+        file_path (str): path to csv file
+    """
+    dict = {}
+    with open(file_path, 'r') as csvfile:
+        csvreader = csv.reader(csvfile)
+        # Skip the first line
+        next(csvreader)
+        for row in csvreader:
+            hyperparameter, value = row
+            # Check if the value is numeric and convert it to int or float accordingly
+            try:
+                if '.' in value:
+                    value = float(value)
+                else:
+                    value = int(value)
+            except ValueError:
+                pass  # If conversion is not possible, keep the value as a string
+            dict[hyperparameter] = value
+    return dict

@@ -23,7 +23,7 @@ import os
 from matplotlib.colors import ListedColormap
 from sklearn.inspection import DecisionBoundaryDisplay
 from qml_benchmarks import models
-from qml_benchmarks.hyperparam_search_utils import read_data
+from qml_benchmarks.hyperparam_search_utils import read_data, csv_to_dict
 
 os.makedirs("figures", exist_ok=True)
 
@@ -32,26 +32,6 @@ sns.set(font_scale=1.3)
 sns.set_style("white")
 palette = sns.color_palette("deep")
 cmap = ListedColormap(palette)
-
-
-def csv_to_dict(file_path):
-    dict = {}
-    with open(file_path, 'r') as csvfile:
-        csvreader = csv.reader(csvfile)
-        # Skip the first line
-        next(csvreader)
-        for row in csvreader:
-            hyperparameter, value = row
-            # Check if the value is numeric and convert it to int or float accordingly
-            try:
-                if '.' in value:
-                    value = float(value)
-                else:
-                    value = int(value)
-            except ValueError:
-                pass  # If conversion is not possible, keep the value as a string
-            dict[hyperparameter] = value
-    return dict
 
 
 X_train, y_train = read_data(
