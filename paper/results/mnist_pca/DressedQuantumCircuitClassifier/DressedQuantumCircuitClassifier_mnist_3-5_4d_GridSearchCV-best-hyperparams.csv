@@ -1,0 +1,4 @@
+hyperparameter,best_value
+batch_size,32
+learning_rate,0.01
+n_layers,15

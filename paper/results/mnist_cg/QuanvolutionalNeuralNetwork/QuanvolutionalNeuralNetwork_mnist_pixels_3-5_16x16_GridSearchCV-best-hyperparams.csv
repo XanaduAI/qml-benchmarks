@@ -1,0 +1,7 @@
+hyperparameter,best_value
+batch_size,32
+kernel_shape,3
+learning_rate,0.001
+max_vmap,32
+n_qchannels,1
+qkernel_shape,2
