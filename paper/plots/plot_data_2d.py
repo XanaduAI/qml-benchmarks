@@ -15,6 +15,7 @@
 """
 Script to reproduce the 2d plots in Fig. 5 in the plots.
 """
+import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib
@@ -36,8 +37,8 @@ matplotlib.rcParams["axes.spines.right"] = False
 matplotlib.rcParams["axes.spines.top"] = False
 
 paths = [
-    ("../benchmarks/linearly_separable/linearly_separable_2d", "LINEARLY_SEPARABLE-2d"),
-    ("../benchmarks/mnist_pca/mnist_3-5_2d", "MNIST-2d"),
+    ("datasets-for-plots/linearly_separable/linearly_separable_2d", "LINEARLY_SEPARABLE-2d"),
+    ("datasets-for-plots/mnist_pca/mnist_3-5_2d", "MNIST-2d"),
     (
         "datasets-for-plots/hyperplanes_parity/hyperplanes-2d-from2d-2n",
         "HYPERPLANES-2d-2n",
@@ -64,10 +65,10 @@ for path, out_name in paths:
     fig = plt.figure()
     ax = plt.gca()
 
-    plt.scatter(X_train_pos[:, 0], X_train_pos[:, 1], marker=".", c=palette[0])
-    plt.scatter(X_train_neg[:, 0], X_train_neg[:, 1], marker=".", c=palette[1])
-    plt.scatter(X_test_pos[:, 0], X_test_pos[:, 1], marker="x", c=palette[0])
-    plt.scatter(X_test_neg[:, 0], X_test_neg[:, 1], marker="x", c=palette[1])
+    plt.scatter(X_train_pos[:, 0], X_train_pos[:, 1], marker=".", c=np.array(palette[0]).reshape(1,-1))
+    plt.scatter(X_train_neg[:, 0], X_train_neg[:, 1], marker=".", c=np.array(palette[1]).reshape(1,-1))
+    plt.scatter(X_test_pos[:, 0], X_test_pos[:, 1], marker="x", c=np.array(palette[0]).reshape(1,-1))
+    plt.scatter(X_test_neg[:, 0], X_test_neg[:, 1], marker="x", c=np.array(palette[1]).reshape(1,-1))
     plt.xticks([])
     plt.yticks([])
     plt.xlabel("$x_1$", fontsize=30)

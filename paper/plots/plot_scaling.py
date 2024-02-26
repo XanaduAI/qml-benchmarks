@@ -19,10 +19,10 @@ import pandas
 import seaborn as sns
 import matplotlib.pyplot as plt
 import os
+import yaml
 
 os.makedirs("figures", exist_ok=True)
 
-import yaml
 
 sns.set(rc={"figure.figsize": (6, 4)})
 sns.set(font_scale=1.2)
@@ -54,7 +54,6 @@ for ax, dataset, dataset_name in zip([ax1, ax2, ax3, ax4], datasets, dataset_nam
     colors = plotting_config["color"]
     dashes = plotting_config["dashes"]
     markers = plotting_config["marker"]
-
 
     ax.axvline(x=1.0, color='gray', linestyle='--')
 

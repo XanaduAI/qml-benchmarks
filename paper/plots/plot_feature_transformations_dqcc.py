@@ -22,7 +22,6 @@ import matplotlib.pyplot as plt
 import os
 
 os.makedirs("figures", exist_ok=True)
-from matplotlib.colors import ListedColormap
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import make_moons
 from qml_benchmarks.models import (

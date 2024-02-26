@@ -105,7 +105,6 @@ clfs_qnn = [
     "QuantumMetricLearner",
     "QuantumBoltzmannMachine",
     "TreeTensorClassifier",
-    # "SeparableVariationalClassifier"
 ]
 
 clfs_kernel = [
@@ -113,7 +112,6 @@ clfs_kernel = [
     "ProjectedQuantumKernel",
     "QuantumKitchenSinks",
     "SVC",
-    # "SeparableKernelClassifier",
 ]
 
 clfs_cnn = ["ConvolutionalNeuralNetwork", "WeiNet", "QuanvolutionalNeuralNetwork"]

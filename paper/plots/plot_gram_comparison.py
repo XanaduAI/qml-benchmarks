@@ -19,17 +19,23 @@ import csv
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-
-os.makedirs("figures", exist_ok=True)
 import seaborn as sns
 from qml_benchmarks import models
 from qml_benchmarks.hyperparam_search_utils import read_data
 
+os.makedirs("figures", exist_ok=True)
+
 sns.set(rc={"figure.figsize": (6, 6)})
 sns.set(font_scale=1.0)
 sns.set_style("white")
+cmap = sns.diverging_palette(30, 255, l=60, as_cmap=True)
+
 
 def csv_to_dict(file_path):
+    """Read a csv file and interpret the content as a dictionary.
+    Args:
+        file_path (str): path to csv file
+    """
     dict = {}
     with open(file_path, 'r') as csvfile:
         csvreader = csv.reader(csvfile)
@@ -76,82 +82,62 @@ def alignment(gram1, gram2):
 
 datasets = {
     "mnist_pca": [
-        "../benchmarks/mnist_pca-/",
+        "datasets-for-plots/mnist_pca-/",
         "../results/mnist_pca-",
         "mnist_3-5_",
         "d-250",
         "MNIST PCA-",
     ],
     "linearly-separable": [
-        "../benchmarks/linearly_separable/",
+        "datasets-for-plots/linearly_separable/",
         "../results/linearly_separable",
         "linearly_separable_",
         "d",
         "LINEARLY SEPARABLE",
     ],
     "hmm": [
-        "../benchmarks/hidden_manifold/",
+        "datasets-for-plots/hidden_manifold_model/",
         "../results/hidden_manifold",
         "hidden_manifold-6manifold-",
         "d",
         "HIDDEN MANIFOLD",
     ],
-    "hmm-diff": [
-        "../benchmarks/hidden_manifold/",
-        "../results/hidden_manifold_diff",
-        "hidden_manifold-",
-        "d-10manifold",
-        "HIDDEN MANIFOLD DIFF",
-    ],
     "two-curves": [
-        "../benchmarks/two_curves_diff/",
-        "../results/two_curves_diff",
+        "datasets-for-plots/two_curves/",
+        "../results/two_curves",
         "two_curves-5degree-0.1offset-",
         "d",
         "TWO CURVES",
-    ],
-    "two-curves-diff": [
-        "../benchmarks/two_curves/",
-        "../results/hidden_manifold",
-        "two_curves-",
-        "d-10degree",
-        "TWO CURVES DIFF",
-    ],
-    "hyperplanes-diff": [
-        "../benchmarks/hyperplanes_diff/",
-        "../results/hyperplanes_diff",
-        "hyperplanes-",
-        "d-from3d-10n",
-        "HYPERPLANES DIFF",
-    ],
+    ]
 }
 
 for dataname, (
-    path_to_data,
-    path_to_results_folder,
-    dataset_name0,
-    dataset_name1,
-    displayname,
+        path_to_data,
+        path_to_results_folder,
+        dataset_name0,
+        dataset_name1,
+        displayname,
 ) in datasets.items():
 
-    for k in [2, 10]:
+    for k in [2]:#, 10]:
 
         dataset_name = dataset_name0 + str(k) + dataset_name1
         try:
-            X, _ = read_data(path_to_data + dataset_name + "_test.csv")
+            X, _ = read_data(path_to_data + dataset_name + "_train.csv")
         except FileNotFoundError:
+            print(path_to_data + dataset_name + "_train.csv not found")
             continue
 
         # ----------------------
 
         model_name = "IQPKernelClassifier"
         hyperparams_path = (
-            path_to_results_folder
-            + f"/{model_name}/"
-            + model_name
-            + "_"
-            + dataset_name
-            + "_GridSearchCV-best-hyperparams.csv"
+                path_to_results_folder
+                + f"/{model_name}/"
+                + model_name
+                + "_"
+                + dataset_name
+                + "_GridSearchCV-best-hyperparams.csv"
         )
 
         best_hyperparams = csv_to_dict(hyperparams_path)
@@ -164,12 +150,12 @@ for dataname, (
 
         model_name = "ProjectedQuantumKernel"
         hyperparams_path = (
-            path_to_results_folder
-            + f"/{model_name}/"
-            + model_name
-            + "_"
-            + dataset_name
-            + "_GridSearchCV-best-hyperparams.csv"
+                path_to_results_folder
+                + f"/{model_name}/"
+                + model_name
+                + "_"
+                + dataset_name
+                + "_GridSearchCV-best-hyperparams.csv"
         )
         best_hyperparams = csv_to_dict(hyperparams_path)
         clf = models.ProjectedQuantumKernel(**best_hyperparams)
@@ -181,12 +167,12 @@ for dataname, (
 
         model_name = "SeparableKernelClassifier"
         hyperparams_path = (
-            path_to_results_folder
-            + f"/{model_name}/"
-            + model_name
-            + "_"
-            + dataset_name
-            + "_GridSearchCV-best-hyperparams.csv"
+                path_to_results_folder
+                + f"/{model_name}/"
+                + model_name
+                + "_"
+                + dataset_name
+                + "_GridSearchCV-best-hyperparams.csv"
         )
         best_hyperparams = csv_to_dict(hyperparams_path)
         clf = models.SeparableKernelClassifier(**best_hyperparams)
@@ -198,12 +184,12 @@ for dataname, (
 
         model_name = "SVC"
         hyperparams_path = (
-            path_to_results_folder
-            + f"/{model_name}/"
-            + model_name
-            + "_"
-            + dataset_name
-            + "_GridSearchCV-best-hyperparams.csv"
+                path_to_results_folder
+                + f"/{model_name}/"
+                + model_name
+                + "_"
+                + dataset_name
+                + "_GridSearchCV-best-hyperparams.csv"
         )
         best_hyperparams = csv_to_dict(hyperparams_path)
         gamma = best_hyperparams["gamma"]
@@ -213,12 +199,12 @@ for dataname, (
 
         model_name = "QuantumKitchenSinks"
         hyperparams_path = (
-            path_to_results_folder
-            + f"/{model_name}/"
-            + model_name
-            + "_"
-            + dataset_name
-            + "_GridSearchCV-best-hyperparams.csv"
+                path_to_results_folder
+                + f"/{model_name}/"
+                + model_name
+                + "_"
+                + dataset_name
+                + "_GridSearchCV-best-hyperparams.csv"
         )
         best_hyperparams = csv_to_dict(hyperparams_path)
         clf = models.QuantumKitchenSinks(**best_hyperparams)
@@ -229,13 +215,13 @@ for dataname, (
         # ----------------------
 
         # Compute alignment
-        kernels = [gram_svc, gram_sep, gram_iqp, gram_pqk, gram_qks]
+        kernels = [gram_svc, gram_sep, gram_iqp, gram_qks, gram_pqk]
         names = [
             "SVC",
             "SeparableKernelClassifier",
             "IQPKernelClassifier",
-            "ProjectedQuantumKernel",
             "QuantumKitchenSinks",
+            "ProjectedQuantumKernel",
         ]
 
         alignments = np.zeros((len(kernels), len(kernels)))
@@ -245,12 +231,12 @@ for dataname, (
 
         fig, ax = plt.subplots()
         plt.tight_layout()
-        pos = plt.imshow(alignments, cmap="rainbow", vmin=0, vmax=1)
+        pos = plt.imshow(alignments, cmap=cmap, vmin=0, vmax=1)
         ax.set_xticks(np.arange(len(names)), labels=names)
         ax.set_yticks(np.arange(len(names)), labels=names)
         plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
         fig.colorbar(pos)
         plt.title(f"{displayname} {k}d")
         plt.tight_layout()
-        plt.savefig(f"figures/gram-comparison-{displayname}-{k}d.png")
+        plt.savefig(f"figures/gram-comparison-{displayname}-{k}d.svg")
         plt.show()

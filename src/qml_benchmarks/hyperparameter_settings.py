@@ -40,7 +40,24 @@ hyper_parameter_settings = {
             "val": ["single", "half", "full"],
         },
     },
+    "DataReuploadingClassifierSeparable": {
+        "max_vmap": {"type": "list", "dtype": "int", "val": [1]},
+        "batch_size": {"type": "list", "dtype": "int", "val": [32]},
+        "learning_rate": {"type": "list", "dtype": "float", "val": [0.001, 0.01, 0.1]},
+        "n_layers": {"type": "list", "dtype": "int", "val": [1, 5, 10, 15]},
+        "observable_type": {
+            "type": "list",
+            "dtype": "str",
+            "val": ["single", "half", "full"],
+        },
+    },
     "DressedQuantumCircuitClassifier": {
+        "max_vmap": {"type": "list", "dtype": "int", "val": [1]},
+        "batch_size": {"type": "list", "dtype": "int", "val": [32]},
+        "learning_rate": {"type": "list", "dtype": "float", "val": [0.001, 0.01, 0.1]},
+        "n_layers": {"type": "list", "dtype": "int", "val": [1, 5, 10, 15]},
+    },
+    "DressedQuantumCircuitClassifierSeparable": {
         "max_vmap": {"type": "list", "dtype": "int", "val": [1]},
         "batch_size": {"type": "list", "dtype": "int", "val": [32]},
         "learning_rate": {"type": "list", "dtype": "float", "val": [0.001, 0.01, 0.1]},
@@ -77,6 +94,17 @@ hyper_parameter_settings = {
         "n_layers": {"type": "list", "dtype": "int", "val": [1, 3, 4]},
     },
     "QuantumBoltzmannMachine": {
+        "max_vmap": {"type": "list", "dtype": "int", "val": [32]},
+        "batch_size": {"type": "list", "dtype": "int", "val": [32]},
+        "learning_rate": {"type": "list", "dtype": "float", "val": [0.001, 0.01, 0.1]},
+        "visible_qubits": {
+            "type": "list",
+            "dtype": "str",
+            "val": ["single", "half", "full"],
+        },
+        "temperature": {"type": "list", "dtype": "float", "val": [1, 10, 100]},
+    },
+    "QuantumBoltzmannMachineSeparable": {
         "max_vmap": {"type": "list", "dtype": "int", "val": [32]},
         "batch_size": {"type": "list", "dtype": "int", "val": [32]},
         "learning_rate": {"type": "list", "dtype": "float", "val": [0.001, 0.01, 0.1]},

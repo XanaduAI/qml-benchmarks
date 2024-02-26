@@ -1,4 +1,0 @@
-hyperparameter,best_value
-max_vmap,1
-n_episodes,2000
-n_qfeatures,half

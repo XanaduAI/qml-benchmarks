@@ -15,18 +15,19 @@
 """
 Script to reproduce the 3d plots in Fig. 5 in the plots.
 """
+import os
+import numpy as np
+import seaborn as sns
 import matplotlib
 import matplotlib.pyplot as plt
-import os
-import seaborn as sns
-
-# Set the Seaborn color palette
-palette = sns.color_palette("deep")
-
-os.makedirs("figures", exist_ok=True)
 from mpl_toolkits import mplot3d
 import pandas as pd
 import seaborn as sns
+
+os.makedirs("figures", exist_ok=True)
+
+# Set the Seaborn color palette
+palette = sns.color_palette("deep")
 
 matplotlib.rcParams["mathtext.fontset"] = "stix"
 matplotlib.rcParams["font.family"] = "STIXGeneral"
@@ -37,23 +38,23 @@ sns.set_style("white")
 
 paths = [
     (
-        "../benchmarks/linearly_separable/linearly_separable_3d",
+        "datasets-for-plots/linearly_separable/linearly_separable_3d",
         "LINEARLY_SEPARABLE-3d",
         (0, 1, 2),
     ),
-    ("../benchmarks/mnist_pca/mnist_3-5_3d", "MNIST-3d", (0, 1, 2)),
+    ("datasets-for-plots/mnist_pca/mnist_3-5_3d", "MNIST-3d", (0, 1, 2)),
     (
-        "../benchmarks/two_curves_diff/two_curves-10d-2degree",
+        "datasets-for-plots/two_curves_diff/two_curves-10d-2degree",
         "TWO_CURVES-10d-2deg",
         (0, 8, 3),
     ),
     (
-        "../benchmarks/two_curves_diff/two_curves-10d-10degree",
+        "datasets-for-plots/two_curves_diff/two_curves-10d-10degree",
         "TWO_CURVES-10d-10deg",
         (0, 8, 3),
     ),
     (
-        "../benchmarks/two_curves_diff/two_curves-10d-20degree",
+        "datasets-for-plots/two_curves_diff/two_curves-10d-20degree",
         "TWO_CURVES-10d-20deg",
         (0, 8, 3),
     ),
@@ -99,7 +100,7 @@ for path, out_name, dims in paths:
         X_train_pos[:, dim2],
         X_train_pos[:, dim3],
         marker=".",
-        c=palette[0],
+        c=np.array(palette[0]).reshape(1,-1),
         label="train 1",
     )
     ax.scatter3D(
@@ -107,7 +108,7 @@ for path, out_name, dims in paths:
         X_train_neg[:, dim2],
         X_train_neg[:, dim3],
         marker=".",
-        c=palette[1],
+        c=np.array(palette[1]).reshape(1,-1),
         label="train -1",
     )
     ax.scatter3D(
@@ -115,7 +116,7 @@ for path, out_name, dims in paths:
         X_test_pos[:, dim2],
         X_test_pos[:, dim3],
         marker="x",
-        c=palette[0],
+        c=np.array(palette[0]).reshape(1,-1),
         label="test 1",
     )
     ax.scatter3D(
@@ -123,7 +124,7 @@ for path, out_name, dims in paths:
         X_test_neg[:, dim2],
         X_test_neg[:, dim3],
         marker="x",
-        c=palette[1],
+        c=np.array(palette[1]).reshape(1,-1),
         label="test -1",
     )
 

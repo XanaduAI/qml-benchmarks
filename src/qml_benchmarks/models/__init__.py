@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """Module containing models to be used in benchmarks."""
 
 from qml_benchmarks.models.circuit_centric import CircuitCentricClassifier
@@ -33,12 +34,13 @@ from qml_benchmarks.models.dressed_quantum_circuit import (
 from qml_benchmarks.models.iqp_kernel import IQPKernelClassifier
 from qml_benchmarks.models.iqp_variational import IQPVariationalClassifier
 from qml_benchmarks.models.projected_quantum_kernel import ProjectedQuantumKernel
-from qml_benchmarks.models.quantum_boltzmann_machine import QuantumBoltzmannMachine
+from qml_benchmarks.models.quantum_boltzmann_machine import (
+    QuantumBoltzmannMachine,
+    QuantumBoltzmannMachineSeparable
+)
 from qml_benchmarks.models.quantum_kitchen_sinks import QuantumKitchenSinks
 from qml_benchmarks.models.quantum_metric_learning import QuantumMetricLearner
-from qml_benchmarks.models.quanvolutional_neural_network import (
-    QuanvolutionalNeuralNetwork,
-)
+from qml_benchmarks.models.quanvolutional_neural_network import QuanvolutionalNeuralNetwork
 from qml_benchmarks.models.separable import (
     SeparableVariationalClassifier,
     SeparableKernelClassifier,
@@ -65,6 +67,7 @@ __all__ = [
     "IQPVariationalClassifier",
     "ProjectedQuantumKernel",
     "QuantumBoltzmannMachine",
+    "QuantumBoltzmannMachineSeparable",
     "QuantumKitchenSinks",
     "QuantumMetricLearner",
     "QuanvolutionalNeuralNetwork",
