@@ -146,4 +146,4 @@ if __name__ == "__main__":
 
     print("Results with best hyperparams", results_with_best_hyperparams)
     df = pd.DataFrame.from_dict(results_with_best_hyperparams)
-    df.to_csv(os.path.join("results/" + path_out))
+    df.to_csv(os.path.join(path_out))

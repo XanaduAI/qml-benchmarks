@@ -26,7 +26,7 @@ os.makedirs("figures", exist_ok=True)
 from matplotlib.ticker import MaxNLocator
 
 sns.set(rc={"figure.figsize": (4, 6)})
-sns.set(font_scale=1.3)
+sns.set(font_scale=1.2)
 sns.set_style("white")
 
 datasets = {
@@ -119,7 +119,7 @@ for clf_type, out_name in zip(
         if len(df.index) == 0:
             continue
 
-        fig, ax = plt.subplots(1, 1)
+        fig, ax = plt.subplots(1, 1, figsize=(3, 3))
 
         sns.lineplot(
             ax=ax,
@@ -130,7 +130,8 @@ for clf_type, out_name in zip(
             palette=colors,
             markers=markers,
             dashes=dashes,
-            legend=True,
+           # legend=True,
+            legend=False,
             style="Model",
         )
         sns.despine()
@@ -144,7 +145,7 @@ for clf_type, out_name in zip(
 
         fig.suptitle(f"{dataname}", fontsize=15)
         ax.grid(axis="y")
-        ax.legend(frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.4))
+        #ax.legend(frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.4))
         plt.tight_layout()
-        plt.savefig(f"figures/legend-score-{dataname}-{out_name}.svg")
+        plt.savefig(f"figures/score-{dataname}-{out_name}.svg", bbox_inches='tight')
         plt.show()
