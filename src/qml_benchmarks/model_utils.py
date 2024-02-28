@@ -28,7 +28,7 @@ from sklearn.utils import gen_batches
 
 
 def train(
-        model, loss_fn, optimizer, X, y, random_key_generator, convergence_interval=200
+    model, loss_fn, optimizer, X, y, random_key_generator, convergence_interval=200
 ):
     """
     Trains a model using an optimizer and a loss function via gradient descent. We assume that the loss function
@@ -100,7 +100,7 @@ def train(
             # get means of last two intervals and standard deviation of last interval
             average1 = np.mean(loss_history[-convergence_interval:])
             average2 = np.mean(
-                loss_history[-2 * convergence_interval: -convergence_interval]
+                loss_history[-2 * convergence_interval : -convergence_interval]
             )
             std1 = np.std(loss_history[-convergence_interval:])
             # if the difference in averages is small compared to the statistical fluctuations, stop training.
@@ -134,27 +134,7 @@ def train_without_jax(
         random_key_generator,
         convergence_interval=200
 ):
-    """Trains a model using an optimizer and a loss function.
-
-    We assume that the `model.forward` method works with the `model.params_` to
-    give predictions that the loss function uses for training as:
-
-        >> preds = model.forward(model.params_, X)
-        >> loss = loss_fn(preds, y)
-
-    Args:
-        model (_type_): _description_
-        loss_fn (Callable): _description_
-        optimizer (_type_): _description_
-        X (_type_): _description_
-        y (_type_): _description_
-        key_generator (_type_): _description_
-        interval (int, optional): _description_ Size of interval to average over loss values. The average of the last
-            two intervals is compared to establish convergence.
-        tol (float, optional): _description_ Tolerance criterion for convergence.
-
-    Returns:
-        params (dict): _description_
+    """Trains a model using an optimizer and a loss function, using PennyLane's autograd interface.
     """
 
     params = list(model.params_.values())
@@ -166,7 +146,6 @@ def train_without_jax(
     for step in range(model.max_steps):
         key = random_key_generator()
         X_batch, y_batch = get_batch_without_jax(X, y, key, batch_size=model.batch_size)
-
         X_batch = pnp.array(X_batch, requires_grad=False)
         y_batch = pnp.array(y_batch, requires_grad=False)
         loss_val = loss_fn(*params, X_batch, y_batch)

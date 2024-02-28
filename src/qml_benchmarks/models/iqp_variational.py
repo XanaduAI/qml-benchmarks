@@ -194,6 +194,7 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
                 )
             )
             weights = pnp.array(weights, requires_grad=True)
+
         self.params_ = {"weights": weights}
 
     def fit(self, X, y):
@@ -217,11 +218,9 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
             def loss_fn(params, X, y):
                 expvals = self.forward(params, X)
                 probs = (1 - expvals * y) / 2  # the probs of incorrect classification
-                if self.use_jax:
-                    return jnp.mean(probs)
-                np.mean(probs)
+                return jnp.mean(probs)
 
-            if self.use_jax and self.jit:
+            if self.jit:
                 loss_fn = jax.jit(loss_fn)
 
             self.params_ = train(
