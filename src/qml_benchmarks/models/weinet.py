@@ -152,16 +152,12 @@ class WeiNet(BaseEstimator, ClassifierMixin):
                         jnp.reshape(x, -1), wires=wires, normalize=True, pad_with=0.0
                     )
                     qml.QubitUnitary(
-                        jnp.kron(
-                            self.unitaries[nu][nu], jnp.array(self.unitaries[nu][mu])
-                        ),
+                        jnp.kron(self.unitaries[nu][nu], jnp.array(self.unitaries[nu][mu])),
                         wires=wires,
                     )
                     return [qml.expval(op) for op in operators]
 
-                self.circuit = (
-                    circuit  # we use the last one of the circuits here as an example
-                )
+                self.circuit = circuit  # we use the last one of the circuits here as an example
 
                 if self.jit:
                     circuit = jax.jit(circuit)
@@ -176,9 +172,7 @@ class WeiNet(BaseEstimator, ClassifierMixin):
         is equivalent to classically sampling one of the unitaries Q_i, parameterised by params['s'].
         """
         probs = jax.nn.softmax(params["s"])
-        expvals = jnp.array(
-            [probs[i] * jnp.array(self.circuits[i](x)).T for i in range(9)]
-        )
+        expvals = jnp.array([probs[i] * jnp.array(self.circuits[i](x)).T for i in range(9)])
         expvals = jnp.sum(expvals, axis=0)
         out = jnp.sum(params["weights"] * expvals)
         # out = jax.nn.sigmoid(out)  # convert to a probability
@@ -215,15 +209,12 @@ class WeiNet(BaseEstimator, ClassifierMixin):
         """
         # no of expvals that are combined with weights
         n_expvals = int(
-            self.n_qubits_
-            - 1
-            + factorial(self.n_qubits_ - 2) / 2 / factorial(self.n_qubits_ - 4)
+            self.n_qubits_ - 1 + factorial(self.n_qubits_ - 2) / 2 / factorial(self.n_qubits_ - 4)
         )
 
         self.params_ = {
             "s": jax.random.normal(self.generate_key(), shape=(9,)),
-            "weights": jax.random.normal(self.generate_key(), shape=(n_expvals,))
-            / n_expvals,
+            "weights": jax.random.normal(self.generate_key(), shape=(n_expvals,)) / n_expvals,
         }
 
     def fit(self, X, y):

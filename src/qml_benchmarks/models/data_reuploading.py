@@ -138,10 +138,7 @@ class DataReuploadingClassifier(BaseEstimator, ClassifierMixin):
                 x_idx = 0  # to keep track of the data index
                 for i in range(self.n_qubits_):
                     # scaled inputs
-                    angles = (
-                        x[x_idx : x_idx + 3]
-                        * params["omegas"][layer, x_idx : x_idx + 3]
-                    )
+                    angles = x[x_idx : x_idx + 3] * params["omegas"][layer, x_idx : x_idx + 3]
                     qml.Rot(*angles, wires=i)
 
                     # variational
@@ -158,8 +155,7 @@ class DataReuploadingClassifier(BaseEstimator, ClassifierMixin):
             x_idx = 0
             for i in range(self.n_qubits_):
                 angles = (
-                    x[x_idx : x_idx + 3]
-                    * params["omegas"][self.n_layers, x_idx : x_idx + 3]
+                    x[x_idx : x_idx + 3] * params["omegas"][self.n_layers, x_idx : x_idx + 3]
                     + params["thetas"][i, self.n_layers, :]
                 )
                 qml.Rot(*angles, wires=i)
@@ -254,8 +250,7 @@ class DataReuploadingClassifier(BaseEstimator, ClassifierMixin):
                 / 2
                 * (
                     jnp.sum(
-                        (alpha_mat0 * probs0 - y_mat0) ** 2
-                        + (alpha_mat1 * probs1 - y_mat1) ** 2
+                        (alpha_mat0 * probs0 - y_mat0) ** 2 + (alpha_mat1 * probs1 - y_mat1) ** 2
                     )
                 )
             )  # eqn 23 in plots
@@ -409,20 +404,14 @@ class DataReuploadingClassifierNoTrainableEmbedding(DataReuploadingClassifier):
             for layer in range(self.n_layers):
                 x_idx = 0  # to keep track of the data index
                 for i in range(self.n_qubits_):
-                    angles = (
-                        x[x_idx : x_idx + 3]
-                        * params["omegas"][layer, x_idx : x_idx + 3]
-                    )
+                    angles = x[x_idx : x_idx + 3] * params["omegas"][layer, x_idx : x_idx + 3]
                     qml.Rot(*angles, wires=i)
                     x_idx += 3
 
             # final reupload without CZs
             x_idx = 0
             for i in range(self.n_qubits_):
-                angles = (
-                    x[x_idx : x_idx + 3]
-                    * params["omegas"][self.n_layers, x_idx : x_idx + 3]
-                )
+                angles = x[x_idx : x_idx + 3] * params["omegas"][self.n_layers, x_idx : x_idx + 3]
                 qml.Rot(*angles, wires=i)
                 x_idx += 3
 
@@ -521,8 +510,7 @@ class DataReuploadingClassifierSeparable(DataReuploadingClassifier):
                 x_idx = 0  # to keep track of the data index
                 for i in range(self.n_qubits_):
                     angles = (
-                        x[x_idx : x_idx + 3]
-                        * params["omegas"][layer, x_idx : x_idx + 3]
+                        x[x_idx : x_idx + 3] * params["omegas"][layer, x_idx : x_idx + 3]
                         + params["thetas"][i, layer, :]
                     )
                     qml.Rot(*angles, wires=i)
@@ -532,8 +520,7 @@ class DataReuploadingClassifierSeparable(DataReuploadingClassifier):
             x_idx = 0
             for i in range(self.n_qubits_):
                 angles = (
-                    x[x_idx : x_idx + 3]
-                    * params["omegas"][self.n_layers, x_idx : x_idx + 3]
+                    x[x_idx : x_idx + 3] * params["omegas"][self.n_layers, x_idx : x_idx + 3]
                     + params["thetas"][i, self.n_layers, :]
                 )
                 qml.Rot(*angles, wires=i)

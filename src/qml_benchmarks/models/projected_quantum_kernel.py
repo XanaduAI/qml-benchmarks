@@ -202,24 +202,9 @@ class ProjectedQuantumKernel(BaseEstimator, ClassifierMixin):
 
         for i in range(dim1):
             for j in range(dim2):
-                sumX = sum(
-                    [
-                        (valsX_X1[i, q] - valsX_X2[j, q]) ** 2
-                        for q in range(self.n_qubits_)
-                    ]
-                )
-                sumY = sum(
-                    [
-                        (valsY_X1[i, q] - valsY_X2[j, q]) ** 2
-                        for q in range(self.n_qubits_)
-                    ]
-                )
-                sumZ = sum(
-                    [
-                        (valsZ_X1[i, q] - valsZ_X2[j, q]) ** 2
-                        for q in range(self.n_qubits_)
-                    ]
-                )
+                sumX = sum([(valsX_X1[i, q] - valsX_X2[j, q]) ** 2 for q in range(self.n_qubits_)])
+                sumY = sum([(valsY_X1[i, q] - valsY_X2[j, q]) ** 2 for q in range(self.n_qubits_)])
+                sumZ = sum([(valsZ_X1[i, q] - valsZ_X2[j, q]) ** 2 for q in range(self.n_qubits_)])
 
                 kernel_matrix[i, j] = np.exp(
                     -default_gamma * self.gamma_factor * (sumX + sumY + sumZ)

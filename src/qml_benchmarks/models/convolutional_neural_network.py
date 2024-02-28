@@ -37,13 +37,9 @@ def construct_cnn(output_channels, kernel_shape):
 
         @nn.compact
         def __call__(self, x):
-            x = nn.Conv(
-                features=output_channels[0], kernel_size=(kernel_shape, kernel_shape)
-            )(x)
+            x = nn.Conv(features=output_channels[0], kernel_size=(kernel_shape, kernel_shape))(x)
             x = nn.max_pool(x, window_shape=(2, 2), strides=(2, 2))
-            x = nn.Conv(
-                features=output_channels[1], kernel_size=(kernel_shape, kernel_shape)
-            )(x)
+            x = nn.Conv(features=output_channels[1], kernel_size=(kernel_shape, kernel_shape))(x)
             x = nn.max_pool(x, window_shape=(2, 2), strides=(2, 2))
             x = x.reshape((x.shape[0], -1))  # flatten
             x = nn.Dense(features=output_channels[1] * 2)(x)

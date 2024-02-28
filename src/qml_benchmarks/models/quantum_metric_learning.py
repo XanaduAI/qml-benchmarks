@@ -129,12 +129,8 @@ class QuantumMetricLearner(BaseEstimator, ClassifierMixin):
         @qml.qnode(dev, **self.qnode_kwargs)
         def circuit(params, x1, x2):
             qml.QAOAEmbedding(features=x1, weights=params["weights"], wires=wires)
-            qml.adjoint(qml.QAOAEmbedding)(
-                features=x2, weights=params["weights"], wires=wires
-            )
-            return qml.expval(
-                qml.Projector(np.array([0] * self.n_qubits_), wires=wires)
-            )
+            qml.adjoint(qml.QAOAEmbedding)(features=x2, weights=params["weights"], wires=wires)
+            return qml.expval(qml.Projector(np.array([0] * self.n_qubits_), wires=wires))
 
         self.circuit = circuit
 
@@ -202,9 +198,7 @@ class QuantumMetricLearner(BaseEstimator, ClassifierMixin):
         B = jnp.array(X[y == 1])
 
         if self.batch_size > min(len(A), len(B)):
-            warnings.warn(
-                "batch size too large, setting to " + str(min(len(A), len(B)))
-            )
+            warnings.warn("batch size too large, setting to " + str(min(len(A), len(B))))
             self.batch_size = min(len(A), len(B))
 
         def loss_fn(params, A=None, B=None):
@@ -260,13 +254,9 @@ class QuantumMetricLearner(BaseEstimator, ClassifierMixin):
 
         X = self.transform(X)
 
-        max_examples = min(
-            len(self.params_["examples_-1"]), len(self.params_["examples_+1"])
-        )
+        max_examples = min(len(self.params_["examples_-1"]), len(self.params_["examples_+1"]))
         if self.n_examples_predict > max_examples:
-            warnings.warn(
-                "n_examples_predict too large, setting to " + str(max_examples)
-            )
+            warnings.warn("n_examples_predict too large, setting to " + str(max_examples))
             self.n_examples_predict = max_examples
 
         A_examples, B_examples = get_batch(

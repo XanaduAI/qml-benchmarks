@@ -29,29 +29,21 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
 
-def generate_mnist(
-    digitA, digitB, preprocessing, n_features=None, n_samples=None, height=None
-):
+def generate_mnist(digitA, digitB, preprocessing, n_features=None, n_samples=None, height=None):
     if preprocessing == "cg":
 
-        mnist_train = torchvision.datasets.MNIST(
-            "mnist_original/", download=True, train=True
-        )
+        mnist_train = torchvision.datasets.MNIST("mnist_original/", download=True, train=True)
         X_train = mnist_train.data
         y_train = mnist_train.targets
 
-        mnist_test = torchvision.datasets.MNIST(
-            "mnist_original/", download=True, train=False
-        )
+        mnist_test = torchvision.datasets.MNIST("mnist_original/", download=True, train=False)
         X_test = mnist_test.data
         y_test = mnist_test.targets
 
         idxs_train = np.concatenate(
             (np.where(y_train == digitA)[0], np.where(y_train == digitB)[0])
         )
-        idxs_test = np.concatenate(
-            (np.where(y_test == digitA)[0], np.where(y_test == digitB)[0])
-        )
+        idxs_test = np.concatenate((np.where(y_test == digitA)[0], np.where(y_test == digitB)[0]))
 
         X_train = X_train[idxs_train]
         y_train = y_train[idxs_train]

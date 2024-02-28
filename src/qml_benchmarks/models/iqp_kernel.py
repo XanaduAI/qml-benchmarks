@@ -30,9 +30,9 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
         svm=SVC(kernel="precomputed", probability=True),
         repeats=2,
         C=1.0,
-        use_jax=False,
-        vmap=False,
-        jit=False,
+        use_jax=None,
+        vmap=None,
+        jit=None,
         random_state=42,
         scaling=1.0,
         max_vmap=250,
@@ -76,16 +76,17 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
         # attributes that do not depend on data
         self.repeats = repeats
         self.C = C
-        self.use_jax = use_jax
-        self.vmap = vmap
-        self.jit = jit
         self.max_vmap = max_vmap
         self.svm = svm
-        self.dev_type = dev_type
         self.qnode_kwargs = qnode_kwargs
         self.scaling = scaling
         self.random_state = random_state
         self.rng = np.random.default_rng(random_state)
+        # device-related attributes
+        self.dev_type = dev_type
+        self.use_jax = use_jax if use_jax is not None else self.dev_type == "default.qubit.jax"
+        self.vmap = vmap if vmap is not None else self.use_jax
+        self.jit = jit if jit is not None else self.use_jax
 
         # data-dependant attributes
         # which will be initialised by calling "fit"
@@ -128,6 +129,10 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
 
         if self.use_jax and self.jit:
             circuit = jax.jit(circuit)
+        elif "lightning" in self.dev_type and self.jit:
+            from catalyst import qjit
+
+            circuit = qjit(circuit)
         return circuit
 
     def precompute_kernel(self, X1, X2):
@@ -142,24 +147,23 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
         dim1 = len(X1)
         dim2 = len(X2)
 
-        # concatenate all pairs of vectors
-        Z = np.array(
-            [np.concatenate((X1[i], X2[j])) for i in range(dim1) for j in range(dim2)]
-        )
-
         circuit = self.construct_circuit()
 
         if self.use_jax and self.vmap:
+            # concatenate all pairs of vectors
+            Z = np.array([np.concatenate((X1[i], X2[j])) for i in range(dim1) for j in range(dim2)])
             # if batched circuit is used
             self.batched_circuit = chunk_vmapped_fn(
                 jax.vmap(circuit, 0), start=0, max_vmap=self.max_vmap
             )
             kernel_values = self.batched_circuit(Z)[:, 0]
+            # reshape the values into the kernel matrix
+            kernel_matrix = np.reshape(kernel_values, (dim1, dim2))
         else:
-            kernel_values = np.array([circuit(z)[0] for z in Z])
-
-        # reshape the values into the kernel matrix
-        kernel_matrix = np.reshape(kernel_values, (dim1, dim2))
+            kernel_matrix = np.empty((dim1, dim2))
+            for i, x in enumerate(X1):
+                for j, y in enumerate(X2):
+                    kernel_matrix[i, j] = circuit(np.concatenate((x, y)))[0]
 
         return kernel_matrix
 
@@ -192,9 +196,7 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
 
         if self.use_jax:
             self.svm.random_state = int(
-                jax.random.randint(
-                    self.generate_key(), shape=(1,), minval=0, maxval=1000000
-                )
+                jax.random.randint(self.generate_key(), shape=(1,), minval=0, maxval=1000000)
             )
         else:
             self.svm.random_state = self.generate_key()

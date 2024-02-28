@@ -180,9 +180,7 @@ class QuantumKitchenSinks(BaseEstimator, ClassifierMixin):
         betas = (
             2
             * np.pi
-            * jax.random.uniform(
-                key=self.generate_key(), shape=(self.n_episodes, self.n_qubits_)
-            )
+            * jax.random.uniform(key=self.generate_key(), shape=(self.n_episodes, self.n_qubits_))
         )
         self.params_ = {"omegas": np.array(omegas), "betas": np.array(betas)}
 
@@ -241,11 +239,7 @@ class QuantumKitchenSinks(BaseEstimator, ClassifierMixin):
         Args:
             X (np.ndarray): Data of shape (n_samples, n_features)
         """
-        if (
-            self.params_["betas"] is None
-            or self.params_["omegas"] is None
-            or self.circuit is None
-        ):
+        if self.params_["betas"] is None or self.params_["omegas"] is None or self.circuit is None:
             raise ValueError("Model cannot predict without fitting to data first.")
 
         if preprocess:

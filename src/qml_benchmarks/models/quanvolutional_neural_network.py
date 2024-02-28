@@ -174,9 +174,7 @@ class QuanvolutionalNeuralNetwork(BaseEstimator, ClassifierMixin):
             jnp.pi
             * 2
             * jnp.array(
-                jax.random.uniform(
-                    self.generate_key(), shape=(self.rand_depth, self.rand_rot)
-                )
+                jax.random.uniform(self.generate_key(), shape=(self.rand_depth, self.rand_rot))
             )
         )
 
@@ -203,14 +201,10 @@ class QuanvolutionalNeuralNetwork(BaseEstimator, ClassifierMixin):
         """
         construct the quantum feature map.
         """
-        random_circuits = [
-            self.construct_random_circuit() for __ in range(self.n_qchannels)
-        ]
+        random_circuits = [self.construct_random_circuit() for __ in range(self.n_qchannels)]
 
         # construct an array that specifies the indices of the 'windows' of the image used for the convolution.
-        idx_mat = jnp.array(
-            [[(i, j) for j in range(self.width)] for i in range(self.height)]
-        )
+        idx_mat = jnp.array([[(i, j) for j in range(self.width)] for i in range(self.height)])
         idxs = jnp.array(
             [
                 idx_mat[j : j + self.qkernel_shape, k : k + self.qkernel_shape]

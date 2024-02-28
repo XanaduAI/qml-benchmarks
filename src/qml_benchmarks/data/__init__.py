@@ -19,4 +19,3 @@ from qml_benchmarks.data.hidden_manifold import generate_hidden_manifold_model
 from qml_benchmarks.data.hyperplanes import generate_hyperplanes_parity
 from qml_benchmarks.data.linearly_separable import generate_linearly_separable
 from qml_benchmarks.data.two_curves import generate_two_curves
-           

@@ -170,12 +170,8 @@ class CircuitCentricClassifier(BaseEstimator, ClassifierMixin):
 
     def initialize_params(self):
         # initialise the trainable parameters
-        shape = qml.StronglyEntanglingLayers.shape(
-            n_layers=self.n_layers, n_wires=self.n_qubits_
-        )
-        weights = jax.random.uniform(
-            self.generate_key(), minval=0, maxval=2 * np.pi, shape=shape
-        )
+        shape = qml.StronglyEntanglingLayers.shape(n_layers=self.n_layers, n_wires=self.n_qubits_)
+        weights = jax.random.uniform(self.generate_key(), minval=0, maxval=2 * np.pi, shape=shape)
         b = jnp.array(0.01)
         self.params_ = {"weights": weights, "b": b}
 
@@ -194,9 +190,7 @@ class CircuitCentricClassifier(BaseEstimator, ClassifierMixin):
         optimizer = optax.adam
 
         def loss_fn(params, X, y):
-            pred = self.forward(
-                params, X
-            )  # jnp.stack([self.forward(params, x) for x in X])
+            pred = self.forward(params, X)  # jnp.stack([self.forward(params, x) for x in X])
             return jnp.mean(optax.l2_loss(pred, y))
 
         if self.jit:
@@ -254,7 +248,5 @@ class CircuitCentricClassifier(BaseEstimator, ClassifierMixin):
         padding = np.ones(shape=(len(X), n_padding)) / max_n_features
 
         X_padded = np.c_[X, padding]
-        X_normalised = np.divide(
-            X_padded, np.expand_dims(np.linalg.norm(X_padded, axis=1), axis=1)
-        )
+        X_normalised = np.divide(X_padded, np.expand_dims(np.linalg.norm(X_padded, axis=1), axis=1))
         return X_normalised

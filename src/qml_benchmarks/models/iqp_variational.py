@@ -106,6 +106,7 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
         dev = qml.device(self.dev_type, wires=self.n_qubits_)
 
         if self.use_jax:
+
             @qml.qnode(dev, **self.qnode_kwargs)
             def circuit(params, x):
                 """
@@ -136,6 +137,7 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
                 self.forward = forward
 
         else:
+
             @qml.qnode(dev, **self.qnode_kwargs)
             def circuit(weights, x):
                 """
@@ -189,13 +191,7 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
                 )
             )
         else:
-            weights = (
-                2
-                * np.pi
-                * np.random.uniform(
-                    size=(self.n_layers, self.n_qubits_, 3)
-                )
-            )
+            weights = 2 * np.pi * np.random.uniform(size=(self.n_layers, self.n_qubits_, 3))
             weights = pnp.array(weights, requires_grad=True)
 
         self.params_ = {"weights": weights}

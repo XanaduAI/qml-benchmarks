@@ -7,17 +7,19 @@ from qml_benchmarks.model_utils import train
 from sklearn.preprocessing import StandardScaler
 import itertools
 from qml_benchmarks.model_utils import chunk_vmapped_fn
+
 jax.config.update("jax_enable_x64", True)
 
 sigmaZ = jnp.array([[1, 0], [0, -1]])
 sigmaX = jnp.array([[0, 1], [1, 0]])
 sigmaY = jnp.array([[0, -1j], [1j, 0]])
 
+
 def tensor_ops(ops, idxs, n_qubits):
     """
     Returns a tensor product of two operators acting at indexes idxs in an n_qubit system
     """
-    tensor_op = 1.
+    tensor_op = 1.0
     for i in range(n_qubits):
         if i in idxs:
             j = idxs.index(i)
@@ -26,21 +28,22 @@ def tensor_ops(ops, idxs, n_qubits):
             tensor_op = jnp.kron(tensor_op, jnp.eye(2))
     return tensor_op
 
+
 class QuantumBoltzmannMachine(BaseEstimator, ClassifierMixin):
 
     def __init__(
-            self,
-            visible_qubits='single',
-            observable_type='sum',
-            temperature=1,
-            learning_rate=0.001,
-            batch_size=32,
-            max_vmap=None,
-            jit=True,
-            max_steps=10000,
-            convergence_threshold=1e-6,
-            random_state=42,
-            scaling=1.0
+        self,
+        visible_qubits="single",
+        observable_type="sum",
+        temperature=1,
+        learning_rate=0.001,
+        batch_size=32,
+        max_vmap=None,
+        jit=True,
+        max_steps=10000,
+        convergence_threshold=1e-6,
+        random_state=42,
+        scaling=1.0,
     ):
         """
         Variational Quantum Boltzmann Machine from https://arxiv.org/abs/2006.06004
@@ -109,7 +112,7 @@ class QuantumBoltzmannMachine(BaseEstimator, ClassifierMixin):
         # which will be initialised by calling "fit"
         self.params_ = None  # Dictionary containing the trainable parameters
         self.n_qubits = None
-        self.n_visible = None #number of visible qubits
+        self.n_visible = None  # number of visible qubits
         self.scaler = None  # data scaler will be fitted on training data
         self.circuit = None
 
@@ -121,16 +124,19 @@ class QuantumBoltzmannMachine(BaseEstimator, ClassifierMixin):
         doubles = list(itertools.combinations(np.arange(self.n_qubits), 2))
         self.n_params_ = 2 * len(singles) + len(doubles)
 
-        if self.observable_type == 'sum':
-            obs = sum([tensor_ops([sigmaZ], (i,), self.n_qubits) for i in range(self.n_visible)])/self.n_visible
-        elif self.observable_type == 'product':
-            obs = 1.
+        if self.observable_type == "sum":
+            obs = (
+                sum([tensor_ops([sigmaZ], (i,), self.n_qubits) for i in range(self.n_visible)])
+                / self.n_visible
+            )
+        elif self.observable_type == "product":
+            obs = 1.0
             for i in range(self.n_visible):
                 obs = jnp.kron(obs, sigmaZ)
 
         def gibbs_state(thetas, x):
 
-            H = jnp.zeros([2 ** self.n_qubits, 2 ** self.n_qubits])
+            H = jnp.zeros([2**self.n_qubits, 2**self.n_qubits])
             count = 0
             for idxs in singles:
                 H = H + tensor_ops([sigmaZ], idxs, self.n_qubits) * jnp.dot(thetas[count], x)
@@ -139,7 +145,9 @@ class QuantumBoltzmannMachine(BaseEstimator, ClassifierMixin):
                 count = count + 1
 
             for idxs in doubles:
-                H = H + tensor_ops([sigmaZ, sigmaZ], idxs, self.n_qubits) * jnp.dot(thetas[count], x)
+                H = H + tensor_ops([sigmaZ, sigmaZ], idxs, self.n_qubits) * jnp.dot(
+                    thetas[count], x
+                )
 
             state = jax.scipy.linalg.expm(-H / self.temperature, max_squarings=32)
             return state / jnp.trace(state)
@@ -148,8 +156,9 @@ class QuantumBoltzmannMachine(BaseEstimator, ClassifierMixin):
             state = gibbs_state(thetas, x)
             return jnp.trace(jnp.matmul(state, obs))
 
-        if self.jit: model = jax.jit(model)
-        self.forward = jax.vmap(model,in_axes=(None,0))
+        if self.jit:
+            model = jax.jit(model)
+        self.forward = jax.vmap(model, in_axes=(None, 0))
         self.chunked_forward = chunk_vmapped_fn(self.forward, 1, self.max_vmap)
 
         return self.forward
@@ -171,11 +180,11 @@ class QuantumBoltzmannMachine(BaseEstimator, ClassifierMixin):
 
         self.n_qubits = n_features
 
-        if self.visible_qubits == 'single':
+        if self.visible_qubits == "single":
             self.n_visible = 1
-        elif self.visible_qubits == 'half':
-            self.n_visible = self.n_qubits//2
-        elif self.visible_qubits == 'all':
+        elif self.visible_qubits == "half":
+            self.n_visible = self.n_qubits // 2
+        elif self.visible_qubits == "all":
             self.n_visible = self.n_qubits
 
         self.construct_model()
@@ -203,12 +212,13 @@ class QuantumBoltzmannMachine(BaseEstimator, ClassifierMixin):
 
         def loss_fn(params, X, y):
             # binary cross entropy loss
-            vals = self.forward(params['thetas'], X)
+            vals = self.forward(params["thetas"], X)
             probs = (1 + vals) / 2
             y = jax.nn.relu(y)  # convert to 0,1
-            return jnp.mean(-y*jnp.log(probs) - (1-y)*jnp.log(1-probs))
+            return jnp.mean(-y * jnp.log(probs) - (1 - y) * jnp.log(1 - probs))
 
-        if self.jit: loss_fn = jax.jit(loss_fn)
+        if self.jit:
+            loss_fn = jax.jit(loss_fn)
         self.params_ = train(self, loss_fn, optimizer, X, y, self.generate_key)
 
         return self
@@ -237,7 +247,7 @@ class QuantumBoltzmannMachine(BaseEstimator, ClassifierMixin):
             (n_samples, n_classes)
         """
         X = self.transform(X)
-        predictions = self.forward(self.params_['thetas'], X)
+        predictions = self.forward(self.params_["thetas"], X)
         predictions_2d = np.c_[(1 - predictions) / 2, (1 + predictions) / 2]
         return predictions_2d
 
@@ -258,25 +268,30 @@ class QuantumBoltzmannMachineSeparable(QuantumBoltzmannMachine):
 
     def construct_model(self):
         def qubit_gibbs_state(thetas, x):
-            H = sigmaZ*jnp.dot(thetas[0],x)+sigmaX*jnp.dot(thetas[1],x)
+            H = sigmaZ * jnp.dot(thetas[0], x) + sigmaX * jnp.dot(thetas[1], x)
             state = jax.scipy.linalg.expm(-H / self.temperature, max_squarings=32)
             return state / jnp.trace(state)
 
         def model(thetas, x):
-            gibbs_states = [qubit_gibbs_state(thetas[2*i:2*i+2,:],x) for i in range(self.n_visible)]
-            expvals = jnp.array([jnp.trace(jnp.matmul(state, sigmaZ)) for state in gibbs_states ])
-            if self.observable_type=='sum':
+            gibbs_states = [
+                qubit_gibbs_state(thetas[2 * i : 2 * i + 2, :], x) for i in range(self.n_visible)
+            ]
+            expvals = jnp.array([jnp.trace(jnp.matmul(state, sigmaZ)) for state in gibbs_states])
+            if self.observable_type == "sum":
                 return jnp.mean(expvals)
-            elif self.observable_type=='product':
+            elif self.observable_type == "product":
                 return jnp.prod(expvals)
 
-        if self.jit: model = jax.jit(model)
-        self.forward = jax.vmap(model,in_axes=(None,0))
+        if self.jit:
+            model = jax.jit(model)
+        self.forward = jax.vmap(model, in_axes=(None, 0))
         self.chunked_forward = chunk_vmapped_fn(self.forward, 1, self.max_vmap)
 
         return self.forward
 
     def initialize_params(self):
         # initialise the trainable parameters
-        params = jax.random.normal(shape=(2*self.n_qubits, self.n_qubits), key=self.generate_key())
+        params = jax.random.normal(
+            shape=(2 * self.n_qubits, self.n_qubits), key=self.generate_key()
+        )
         self.params_ = {"thetas": params}

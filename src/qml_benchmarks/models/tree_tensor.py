@@ -110,8 +110,7 @@ class TreeTensorClassifier(BaseEstimator, ClassifierMixin):
                     qml.CNOT,
                     wires=range(self.n_qubits),
                     pattern=[
-                        ((i + 2**layer), i)
-                        for i in range(0, self.n_qubits, 2 ** (layer + 1))
+                        ((i + 2**layer), i) for i in range(0, self.n_qubits, 2 ** (layer + 1))
                     ],
                 )
             qml.RY(params["weights"][count], wires=0)
@@ -162,11 +161,7 @@ class TreeTensorClassifier(BaseEstimator, ClassifierMixin):
     def initialize_params(self):
         # initialise the trainable parameters
         weights = (
-            2
-            * jnp.pi
-            * jax.random.uniform(
-                shape=(2 * self.n_qubits - 1,), key=self.generate_key()
-            )
+            2 * jnp.pi * jax.random.uniform(shape=(2 * self.n_qubits - 1,), key=self.generate_key())
         )
 
         bias = 0.1 * jax.random.normal(shape=(1,), key=self.generate_key())
@@ -241,9 +236,7 @@ class TreeTensorClassifier(BaseEstimator, ClassifierMixin):
         n_features = X.shape[1]
         X = X * self.scaling
 
-        n_qubits_ae = int(
-            np.ceil(np.log2(n_features))
-        )  # the num qubits needed to amplitude encode
+        n_qubits_ae = int(np.ceil(np.log2(n_features)))  # the num qubits needed to amplitude encode
         n_qubits = 2 ** int(
             np.ceil(np.log2(n_qubits_ae))
         )  # the model needs 2**m qubits, for some m
@@ -252,7 +245,5 @@ class TreeTensorClassifier(BaseEstimator, ClassifierMixin):
         padding = np.ones(shape=(len(X), n_padding)) / max_n_features
 
         X_padded = np.c_[X, padding]
-        X_normalised = np.divide(
-            X_padded, np.expand_dims(np.linalg.norm(X_padded, axis=1), axis=1)
-        )
+        X_normalised = np.divide(X_padded, np.expand_dims(np.linalg.norm(X_padded, axis=1), axis=1))
         return X_normalised

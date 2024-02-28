@@ -101,9 +101,7 @@ class SeparableVariationalClassifier(BaseEstimator, ClassifierMixin):
             below to get the full circuit
             """
             for layer in range(self.encoding_layers):
-                qml.Rot(
-                    weights[layer, 0], weights[layer, 1], weights[layer, 2], wires=0
-                )
+                qml.Rot(weights[layer, 0], weights[layer, 1], weights[layer, 2], wires=0)
                 qml.RY(x, wires=0)
             qml.Rot(
                 weights[self.encoding_layers, 0],
@@ -341,9 +339,7 @@ class SeparableKernelClassifier(BaseEstimator, ClassifierMixin):
         dim2 = len(X2)
 
         # concatenate all pairs of vectors
-        Z = np.array(
-            [np.concatenate((X1[i], X2[j])) for i in range(dim1) for j in range(dim2)]
-        )
+        Z = np.array([np.concatenate((X1[i], X2[j])) for i in range(dim1) for j in range(dim2)])
         self.construct_circuit()
         kernel_values = [self.forward(z) for z in Z]
         # reshape the values into the kernel matrix
@@ -379,9 +375,7 @@ class SeparableKernelClassifier(BaseEstimator, ClassifierMixin):
         """
 
         self.svm.random_state = int(
-            jax.random.randint(
-                self.generate_key(), shape=(1,), minval=0, maxval=1000000
-            )
+            jax.random.randint(self.generate_key(), shape=(1,), minval=0, maxval=1000000)
         )
 
         self.initialize(X.shape[1], np.unique(y))

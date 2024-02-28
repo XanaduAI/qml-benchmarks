@@ -161,19 +161,14 @@ class DressedQuantumCircuitClassifier(BaseEstimator, ClassifierMixin):
         circuit_weights = (
             2
             * jnp.pi
-            * jax.random.uniform(
-                shape=(self.n_layers, self.n_qubits_), key=self.generate_key()
-            )
+            * jax.random.uniform(shape=(self.n_layers, self.n_qubits_), key=self.generate_key())
         )
         input_weights = (
-            jax.random.normal(
-                shape=(self.n_qubits_, self.n_qubits_), key=self.generate_key()
-            )
+            jax.random.normal(shape=(self.n_qubits_, self.n_qubits_), key=self.generate_key())
             / self.n_features_
         )
         output_weights = (
-            jax.random.normal(shape=(2, self.n_qubits_), key=self.generate_key())
-            / self.n_features_
+            jax.random.normal(shape=(2, self.n_qubits_), key=self.generate_key()) / self.n_features_
         )
         self.params_ = {
             "circuit_weights": circuit_weights,
@@ -277,20 +272,15 @@ class DressedQuantumCircuitClassifierOnlyNN(DressedQuantumCircuitClassifier):
     def initialize_params(self):
         # initialise the trainable parameters
         mid_weights = (
-            jax.random.normal(
-                shape=(self.n_qubits_, self.n_qubits_), key=self.generate_key()
-            )
+            jax.random.normal(shape=(self.n_qubits_, self.n_qubits_), key=self.generate_key())
             / self.n_features_
         )
         input_weights = (
-            jax.random.normal(
-                shape=(self.n_qubits_, self.n_qubits_), key=self.generate_key()
-            )
+            jax.random.normal(shape=(self.n_qubits_, self.n_qubits_), key=self.generate_key())
             / self.n_features_
         )
         output_weights = (
-            jax.random.normal(shape=(2, self.n_qubits_), key=self.generate_key())
-            / self.n_features_
+            jax.random.normal(shape=(2, self.n_qubits_), key=self.generate_key()) / self.n_features_
         )
         self.params_ = {
             "mid_weights": mid_weights,
