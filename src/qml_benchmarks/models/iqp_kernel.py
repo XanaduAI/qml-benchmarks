@@ -146,6 +146,7 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
         circuit = self.construct_circuit()
 
         if self.use_jax and self.vmap:
+            # if batched circuit is used
             self.batched_circuit = chunk_vmapped_fn(
                 jax.vmap(circuit, 0), start=0, max_vmap=self.max_vmap
             )
@@ -258,5 +259,3 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
             X = self.scaler.transform(X)
 
         return X * self.scaling
-
-

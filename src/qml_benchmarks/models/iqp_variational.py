@@ -117,6 +117,24 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
                     params["weights"], wires=range(self.n_qubits_), imprimitive=qml.CZ
                 )
                 return qml.expval(qml.PauliZ(0) @ qml.PauliZ(1))
+
+            self.circuit = circuit
+
+            if self.jit:
+                circuit = jax.jit(circuit)
+
+            if self.vmap:
+                # use jax and batch feed the circuit
+                self.forward = jax.vmap(circuit, in_axes=(None, 0))
+                self.chunked_forward = chunk_vmapped_fn(self.forward, 1, self.max_vmap)
+
+            else:
+                # use jax but do not batch feed the circuit
+                def forward(params, X):
+                    return jnp.stack([circuit(params, x) for x in X])
+
+                self.forward = forward
+
         else:
             @qml.qnode(dev, **self.qnode_kwargs)
             def circuit(weights, x):
@@ -130,23 +148,8 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
                 )
                 return qml.expval(qml.PauliZ(0) @ qml.PauliZ(1))
 
-        self.circuit = circuit
+            self.circuit = circuit
 
-        if self.use_jax and self.jit:
-            circuit = jax.jit(circuit)
-
-        if self.use_jax:
-            if self.vmap:
-                # use jax and batch feed the circuit
-                self.forward = jax.vmap(circuit, in_axes=(None, 0))
-                self.chunked_forward = chunk_vmapped_fn(self.forward, 1, self.max_vmap)
-            else:
-                # use jax but do not batch feed the circuit
-                def forward(params, X):
-                    return jnp.stack([circuit(params, x) for x in X])
-
-                self.forward = forward
-        else:
             # use autograd and do not batch feed the circuit
             def forward(params, X):
                 return pnp.array([circuit(params, x) for x in X])
