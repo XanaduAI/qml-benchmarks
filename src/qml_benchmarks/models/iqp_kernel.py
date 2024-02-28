@@ -16,7 +16,6 @@ import time
 import pennylane as qml
 import numpy as np
 import jax
-import jax.numpy as jnp
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.svm import SVC
 from sklearn.preprocessing import MinMaxScaler
@@ -31,12 +30,14 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
         svm=SVC(kernel="precomputed", probability=True),
         repeats=2,
         C=1.0,
+        use_jax=False,
+        vmap=False,
         jit=False,
         random_state=42,
         scaling=1.0,
         max_vmap=250,
-        dev_type="default.qubit.jax",
-        qnode_kwargs={"interface": "jax-jit", "diff_method": None},
+        dev_type="default.qubit",
+        qnode_kwargs={},
     ):
         r"""
         Kernel version of the classifier from https://arxiv.org/pdf/1804.11326v2.pdf.
@@ -58,10 +59,12 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
             svm (sklearn.svm.SVC): scikit-learn SVM class object used to fit the model from the kernel matrix
             repeats (int): number of times the IQP structure is repeated in the embedding circuit.
             C (float): regularization parameter for SVC. Lower values imply stronger regularization.
+            use_jax (bool): Whether to use jax. If False, no jitting and vmapping is performed either
             jit (bool): Whether to use just in time compilation.
-            dev_type (str): string specifying the pennylane device type; e.g. 'default.qubit'.
+            vmap (bool): Whether to use jax.vmap.
             max_vmap (int or None): The maximum size of a chunk to vectorise over. Lower values use less memory.
                 must divide batch_size.
+            dev_type (str): string specifying the pennylane device type; e.g. 'default.qubit'.
             qnode_kwargs (str): the key word arguments passed to the circuit qnode.
             scaling (float): Factor by which to scale the input data.
             random_state (int): seed used for reproducibility.
@@ -69,6 +72,8 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
         # attributes that do not depend on data
         self.repeats = repeats
         self.C = C
+        self.use_jax = use_jax
+        self.vmap = vmap
         self.jit = jit
         self.max_vmap = max_vmap
         self.svm = svm
@@ -86,7 +91,9 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
         self.circuit = None
 
     def generate_key(self):
-        return jax.random.PRNGKey(self.rng.integers(1000000))
+        if self.use_jax:
+            return jax.random.PRNGKey(self.rng.integers(1000000))
+        return self.rng.integers(1000000)
 
     def construct_circuit(self):
         dev = qml.device(self.dev_type, wires=self.n_qubits_)
@@ -115,7 +122,7 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
 
         self.circuit = circuit
 
-        if self.jit:
+        if self.use_jax and self.jit:
             circuit = jax.jit(circuit)
         return circuit
 
@@ -132,15 +139,19 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
         dim2 = len(X2)
 
         # concatenate all pairs of vectors
-        Z = jnp.array(
+        Z = np.array(
             [np.concatenate((X1[i], X2[j])) for i in range(dim1) for j in range(dim2)]
         )
 
         circuit = self.construct_circuit()
-        self.batched_circuit = chunk_vmapped_fn(
-            jax.vmap(circuit, 0), start=0, max_vmap=self.max_vmap
-        )
-        kernel_values = self.batched_circuit(Z)[:, 0]
+
+        if self.use_jax and self.vmap:
+            self.batched_circuit = chunk_vmapped_fn(
+                jax.vmap(circuit, 0), start=0, max_vmap=self.max_vmap
+            )
+            kernel_values = self.batched_circuit(Z)[:, 0]
+        else:
+            kernel_values = np.array([circuit(z)[0] for z in Z])
 
         # reshape the values into the kernel matrix
         kernel_matrix = np.reshape(kernel_values, (dim1, dim2))
@@ -174,11 +185,14 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
             y (np.ndarray): Labels of shape (n_samples,)
         """
 
-        self.svm.random_state = int(
-            jax.random.randint(
-                self.generate_key(), shape=(1,), minval=0, maxval=1000000
+        if self.use_jax:
+            self.svm.random_state = int(
+                jax.random.randint(
+                    self.generate_key(), shape=(1,), minval=0, maxval=1000000
+                )
             )
-        )
+        else:
+            self.svm.random_state = self.generate_key()
 
         self.initialize(X.shape[1], np.unique(y))
 
@@ -244,3 +258,5 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
             X = self.scaler.transform(X)
 
         return X * self.scaling
+
+

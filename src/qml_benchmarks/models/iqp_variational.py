@@ -26,14 +26,16 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
         n_layers=10,
         learning_rate=0.001,
         batch_size=32,
-        max_vmap=None,
+        use_jax=False,
         jit=True,
+        vmap=False,
+        max_vmap=None,
         max_steps=10000,
         convergence_interval=200,
         random_state=42,
         scaling=1.0,
-        dev_type="default.qubit.jax",
-        qnode_kwargs={"interface": "jax"},
+        dev_type="default.qubit",
+        qnode_kwargs={},
     ):
         r"""
         Variational verison of the classifier from https://arxiv.org/pdf/1804.11326v2.pdf.
@@ -54,10 +56,12 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
             n_layers (int): Number of layers in the variational part of the circuit.
             learning_rate (float): Learning rate for gradient descent.
             batch_size (int): Size of batches used for computing paraemeter updates.
+            use_jax (bool): Whether to use jax. If False, no jitting and vmapping is performed either.
+            jit (bool): Whether to use just in time compilation.
+            vmap (bool): Whether to use jax.vmap.
             max_vmap (int or None): The maximum size of a chunk to vectorise over. Lower values use less memory.
                 must divide batch_size.
-            jit (bool): Whether to use just in time compilation.
-            convergence_threshold (float): If loss changes less than this threshold for 10 consecutive steps we stop training.
+            convergence_interval (int): If loss does not change significantly in this interval, stop training.
             max_steps (int): Maximum number of training steps. A warning will be raised if training did not converge.
             dev_type (str): string specifying the pennylane device type; e.g. 'default.qubit'.
             qnode_kwargs (str): the keyword arguments passed to the circuit qnode.
@@ -74,6 +78,8 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
         self.batch_size = batch_size
         self.dev_type = dev_type
         self.qnode_kwargs = qnode_kwargs
+        self.use_jax = use_jax
+        self.vmap = vmap
         self.jit = jit
         self.scaling = scaling
         self.random_state = random_state
@@ -92,29 +98,60 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
         self.circuit = None
 
     def generate_key(self):
-        return jax.random.PRNGKey(self.rng.integers(1000000))
+        if self.use_jax:
+            return jax.random.PRNGKey(self.rng.integers(1000000))
+        return self.rng.integers(1000000)
 
     def construct_model(self):
         dev = qml.device(self.dev_type, wires=self.n_qubits_)
 
-        @qml.qnode(dev, **self.qnode_kwargs)
-        def circuit(params, x):
-            """
-            The variational circuit from the plots. Uses an IQP data embedding.
-            We use the same observable as in the plots.
-            """
-            qml.IQPEmbedding(x, wires=range(self.n_qubits_), n_repeats=self.repeats)
-            qml.StronglyEntanglingLayers(
-                params["weights"], wires=range(self.n_qubits_), imprimitive=qml.CZ
-            )
-            return qml.expval(qml.PauliZ(0) @ qml.PauliZ(1))
+        if self.use_jax:
+            @qml.qnode(dev, **self.qnode_kwargs)
+            def circuit(params, x):
+                """
+                The variational circuit from the plots. Uses an IQP data embedding.
+                We use the same observable as in the plots.
+                """
+                qml.IQPEmbedding(x, wires=range(self.n_qubits_), n_repeats=self.repeats)
+                qml.StronglyEntanglingLayers(
+                    params["weights"], wires=range(self.n_qubits_), imprimitive=qml.CZ
+                )
+                return qml.expval(qml.PauliZ(0) @ qml.PauliZ(1))
+        else:
+            @qml.qnode(dev, **self.qnode_kwargs)
+            def circuit(weights, x):
+                """
+                The variational circuit from the plots. Uses an IQP data embedding.
+                We use the same observable as in the plots.
+                """
+                qml.IQPEmbedding(x, wires=range(self.n_qubits_), n_repeats=self.repeats)
+                qml.StronglyEntanglingLayers(
+                    weights, wires=range(self.n_qubits_), imprimitive=qml.CZ
+                )
+                return qml.expval(qml.PauliZ(0) @ qml.PauliZ(1))
 
         self.circuit = circuit
 
-        if self.jit:
+        if self.use_jax and self.jit:
             circuit = jax.jit(circuit)
-        self.forward = jax.vmap(circuit, in_axes=(None, 0))
-        self.chunked_forward = chunk_vmapped_fn(self.forward, 1, self.max_vmap)
+
+        if self.use_jax:
+            if self.vmap:
+                # use jax and batch feed the circuit
+                self.forward = jax.vmap(circuit, in_axes=(None, 0))
+                self.chunked_forward = chunk_vmapped_fn(self.forward, 1, self.max_vmap)
+            else:
+                # use jax but do not batch feed the circuit
+                def forward(params, X):
+                    return jnp.stack([circuit(params, x) for x in X])
+
+                self.forward = forward
+        else:
+            # use autograd and do not batch feed the circuit
+            def forward(params, X):
+                return pnp.array([circuit(params, x) for x in X])
+
+            self.forward = forward
 
         return self.forward
 
@@ -139,13 +176,24 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
 
     def initialize_params(self):
         # initialise the trainable parameters
-        weights = (
-            2
-            * jnp.pi
-            * jax.random.uniform(
-                shape=(self.n_layers, self.n_qubits_, 3), key=self.generate_key()
+
+        if self.use_jax:
+            weights = (
+                2
+                * jnp.pi
+                * jax.random.uniform(
+                    shape=(self.n_layers, self.n_qubits_, 3), key=self.generate_key()
+                )
             )
-        )
+        else:
+            weights = (
+                2
+                * np.pi
+                * np.random.uniform(
+                    size=(self.n_layers, self.n_qubits_, 3)
+                )
+            )
+            weights = pnp.array(weights, requires_grad=True)
         self.params_ = {"weights": weights}
 
     def fit(self, X, y):
@@ -162,24 +210,41 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
         self.scaler.fit(X)
         X = self.transform(X)
 
-        optimizer = optax.adam
+        if self.use_jax:
 
-        def loss_fn(params, X, y):
-            expvals = self.forward(params, X)
-            probs = (1 - expvals * y) / 2  # the probs of incorrect classification
-            return jnp.mean(probs)
+            optimizer = optax.adam
 
-        if self.jit:
-            loss_fn = jax.jit(loss_fn)
-        self.params_ = train(
-            self,
-            loss_fn,
-            optimizer,
-            X,
-            y,
-            self.generate_key,
-            convergence_interval=self.convergence_interval,
-        )
+            def loss_fn(params, X, y):
+                expvals = self.forward(params, X)
+                probs = (1 - expvals * y) / 2  # the probs of incorrect classification
+                if self.use_jax:
+                    return jnp.mean(probs)
+                np.mean(probs)
+
+            if self.use_jax and self.jit:
+                loss_fn = jax.jit(loss_fn)
+
+            self.params_ = train(
+                self,
+                loss_fn,
+                optimizer,
+                X,
+                y,
+                self.generate_key,
+                convergence_interval=self.convergence_interval,
+            )
+
+        else:
+            X = pnp.array(X, requires_grad=False)
+            y = pnp.array(y, requires_grad=False)
+            optimizer = qml.AdamOptimizer
+
+            def loss_fn(weights, X, y):
+                expvals = self.forward(weights, X)
+                probs = (1 - expvals * y) / 2  # the probs of incorrect classification
+                return pnp.mean(probs)
+
+            self.params_ = train_without_jax(self, loss_fn, optimizer, X, y, self.generate_key)
 
         return self
 
@@ -207,7 +272,13 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
             (n_samples, n_classes)
         """
         X = self.transform(X)
-        predictions = self.chunked_forward(self.params_, X)
+        if self.use_jax:
+            if self.vmap:
+                predictions = self.chunked_forward(self.params_, X)
+            else:
+                predictions = self.forward(self.params_, X)
+        else:
+            predictions = self.forward(self.params_["weights"], X)
         predictions_2d = np.c_[(1 - predictions) / 2, (1 + predictions) / 2]
         return predictions_2d
 

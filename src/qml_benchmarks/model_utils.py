@@ -22,12 +22,13 @@ import numpy as np
 import optax
 import jax
 import jax.numpy as jnp
+from pennylane import numpy as pnp
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils import gen_batches
 
 
 def train(
-    model, loss_fn, optimizer, X, y, random_key_generator, convergence_interval=200
+        model, loss_fn, optimizer, X, y, random_key_generator, convergence_interval=200
 ):
     """
     Trains a model using an optimizer and a loss function via gradient descent. We assume that the loss function
@@ -99,7 +100,7 @@ def train(
             # get means of last two intervals and standard deviation of last interval
             average1 = np.mean(loss_history[-convergence_interval:])
             average2 = np.mean(
-                loss_history[-2 * convergence_interval : -convergence_interval]
+                loss_history[-2 * convergence_interval: -convergence_interval]
             )
             std1 = np.std(loss_history[-convergence_interval:])
             # if the difference in averages is small compared to the statistical fluctuations, stop training.
@@ -124,6 +125,84 @@ def train(
     return params
 
 
+def train_without_jax(
+        model,
+        loss_fn,
+        optimizer,
+        X,
+        y,
+        random_key_generator,
+        convergence_interval=200
+):
+    """Trains a model using an optimizer and a loss function.
+
+    We assume that the `model.forward` method works with the `model.params_` to
+    give predictions that the loss function uses for training as:
+
+        >> preds = model.forward(model.params_, X)
+        >> loss = loss_fn(preds, y)
+
+    Args:
+        model (_type_): _description_
+        loss_fn (Callable): _description_
+        optimizer (_type_): _description_
+        X (_type_): _description_
+        y (_type_): _description_
+        key_generator (_type_): _description_
+        interval (int, optional): _description_ Size of interval to average over loss values. The average of the last
+            two intervals is compared to establish convergence.
+        tol (float, optional): _description_ Tolerance criterion for convergence.
+
+    Returns:
+        params (dict): _description_
+    """
+
+    params = list(model.params_.values())
+    opt = optimizer(stepsize=model.learning_rate)
+
+    loss_history = []
+    converged = False
+    start = time.time()
+    for step in range(model.max_steps):
+        key = random_key_generator()
+        X_batch, y_batch = get_batch_without_jax(X, y, key, batch_size=model.batch_size)
+
+        X_batch = pnp.array(X_batch, requires_grad=False)
+        y_batch = pnp.array(y_batch, requires_grad=False)
+        loss_val = loss_fn(*params, X_batch, y_batch)
+        params = opt.step(loss_fn, *params, X_batch, y_batch)[:len(params)]
+        loss_history.append(loss_val)
+
+        logging.debug(f"{step} - loss: {loss_val}")
+
+        if np.isnan(loss_val):
+            logging.info(f"nan encountered. Training aborted.")
+            break
+
+        if step > 2 * convergence_interval:
+            average1 = np.mean(loss_history[-convergence_interval:])
+            average2 = np.mean(loss_history[-2 * convergence_interval:-convergence_interval])
+            std1 = np.std(loss_history[-convergence_interval:])
+            if np.abs(average2 - average1) <= std1 / np.sqrt(convergence_interval) / 2:
+                logging.info(f"Model {model.__class__.__name__} converged after {step} steps.")
+                converged = True
+                break
+
+    end = time.time()
+    loss_history = np.array(loss_history)
+    model.loss_history_ = loss_history / np.max(np.abs(loss_history))
+    model.training_time_ = end - start
+
+    if not converged:
+        raise ConvergenceWarning(
+            f"Model {model.__class__.__name__} has not converged after the maximum number of {model.max_steps} steps.")
+
+    for i, key in enumerate(model.params_.keys()):
+        model.params_[key] = params[i]
+
+    return model.params_
+
+
 def get_batch(X, y, rnd_key, batch_size=32):
     """
     A generator to get random batches of the data (X, y)
@@ -142,6 +221,25 @@ def get_batch(X, y, rnd_key, batch_size=32):
     rnd_indices = jax.random.choice(
         key=rnd_key, a=all_indices, shape=(batch_size,), replace=True
     )
+    return X[rnd_indices], y[rnd_indices]
+
+
+def get_batch_without_jax(X, y, rnd_key, batch_size=32):
+    """
+    A generator to get random batches of the data (X, y)
+
+    Args:
+        X (array[float]): Input data with shape (n_samples, n_features).
+        y (array[float]): Target labels with shape (n_samples,)
+        rnd_key: A jax random key object
+        batch_size (int): Number of elements in batch
+
+    Returns:
+        array[float]: A batch of input data shape (batch_size, n_features)
+        array[float]: A batch of target labels shaped (batch_size,)
+    """
+    all_indices = list(range(len(X)))
+    rnd_indices = np.random.choice(all_indices, size=(batch_size,), replace=True)
     return X[rnd_indices], y[rnd_indices]
 
 
@@ -292,3 +390,54 @@ def chunk_loss(loss_fn, max_vmap):
         return jnp.mean(res)
 
     return chunked_loss
+
+
+####### LOSS UTILS WITHOUT JAX
+
+def l2_loss(pred, y):
+    """
+    The square loss function. 0.5 is there to match optax.l2_loss.
+    """
+    return 0.5 * (pred - y) ** 2
+
+
+def softmax(x, axis=-1):
+    """
+    copied from JAX: https://jax.readthedocs.io/en/latest/_modules/jax/_src/nn/functions.html#softmax
+    """
+    x_max = pnp.max(x, axis, keepdims=True)
+    unnormalized = pnp.exp(x - x_max)
+    result = unnormalized / pnp.sum(unnormalized, axis, keepdims=True)
+    return result
+
+
+def one_hot(a, num_classes=2):
+    """
+    convert an array to a one hot encoded array.
+    Taken from https://stackoverflow.com/questions/29831489/convert-array-of-indices-to-one-hot-encoded-array-in-numpy
+    """
+    b = pnp.zeros((a.size, num_classes))
+    b[pnp.arange(a.size), a] = 1
+    return b
+
+
+def log_softmax(x, axis=-1):
+    """
+    taken from jax.nn.log_softmax:
+    https://jax.readthedocs.io/en/latest/_modules/jax/_src/nn/functions.html#log_softmax
+    """
+    x_arr = pnp.asarray(x)
+    x_max = pnp.max(x_arr, axis, keepdims=True)
+    x_max = pnp.array(x_max, requires_grad=False)
+    shifted = x_arr - x_max
+    shifted_logsumexp = pnp.log(
+        pnp.sum(pnp.exp(shifted), axis, keepdims=True))
+    result = shifted - shifted_logsumexp
+    return result
+
+
+def softmax_cross_entropy(logits, labels):
+    """taken from optax source:
+    https: // github.com / google - deepmind / optax / blob / master / optax / losses / _classification.py  # L78%23L103
+    """
+    return -pnp.sum(labels * log_softmax(logits, axis=-1), axis=-1)
