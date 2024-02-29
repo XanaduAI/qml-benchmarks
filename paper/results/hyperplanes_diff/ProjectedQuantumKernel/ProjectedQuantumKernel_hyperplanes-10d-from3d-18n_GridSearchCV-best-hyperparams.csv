@@ -2,5 +2,5 @@ hyperparameter,best_value
 C,100.0
 gamma_factor,0.1
 max_vmap,1
-t,0.01
+t,0.1
 trotter_steps,1

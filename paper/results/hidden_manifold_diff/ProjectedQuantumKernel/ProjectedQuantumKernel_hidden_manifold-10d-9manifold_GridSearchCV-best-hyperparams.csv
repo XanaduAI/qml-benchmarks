@@ -1,5 +1,5 @@
 hyperparameter,best_value
-C,10.0
+C,100.0
 gamma_factor,1.0
 max_vmap,1
 t,0.01
