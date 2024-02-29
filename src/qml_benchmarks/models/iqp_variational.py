@@ -153,12 +153,13 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
             if self.jit:
                 from catalyst import qjit
                 circuit = qjit(circuit)
+                # circuit(np.random.rand(self.n_layers, self.n_qubits_, 3), np.random.rand(self.n_qubits_))
 
             self.circuit = circuit 
 
             # use autograd and do not batch feed the circuit
             def forward(params, X):
-                return pnp.array([circuit(params, x) for x in X])
+                return jnp.array([circuit(params, x) for x in X])
 
             self.forward = forward
 
@@ -196,7 +197,7 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
             )
         else:
             weights = 2 * np.pi * np.random.uniform(size=(self.n_layers, self.n_qubits_, 3))
-            weights = pnp.array(weights, requires_grad=True)
+            weights = jnp.array(weights)
 
         self.params_ = {"weights": weights}
 
@@ -237,14 +238,18 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
             )
 
         else:
-            X = pnp.array(X, requires_grad=False)
-            y = pnp.array(y, requires_grad=False)
+            X = np.array(X)
+            y = np.array(y)
             optimizer = qml.AdamOptimizer
 
             def loss_fn(weights, X, y):
                 expvals = self.forward(weights, X)
                 probs = (1 - expvals * y) / 2  # the probs of incorrect classification
-                return pnp.mean(probs)
+                return jnp.mean(probs)
+
+            if self.jit:
+                from catalyst import qjit
+                loss_fn = qjit(loss_fn)
 
             self.params_ = train_without_jax(self, loss_fn, optimizer, X, y, self.generate_key)
 
