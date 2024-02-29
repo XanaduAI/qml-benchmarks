@@ -150,7 +150,11 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
                 )
                 return qml.expval(qml.PauliZ(0) @ qml.PauliZ(1))
 
-            self.circuit = circuit
+            if self.jit:
+                from catalyst import qjit
+                circuit = qjit(circuit)
+
+            self.circuit = circuit 
 
             # use autograd and do not batch feed the circuit
             def forward(params, X):
