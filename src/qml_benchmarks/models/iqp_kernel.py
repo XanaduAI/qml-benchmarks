@@ -36,7 +36,11 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
         random_state=42,
         scaling=1.0,
         max_vmap=250,
-        dev_type="default.qubit",
+        # device-related attributes
+        self.dev_type = dev_type
+        self.use_jax = use_jax if use_jax is not None else self.dev_type == "default.qubit.jax"
+        self.vmap = vmap if vmap is not None else self.use_jax
+        self.jit = jit if jit is not None else self.use_jax
         qnode_kwargs={},
     ):
         r"""
