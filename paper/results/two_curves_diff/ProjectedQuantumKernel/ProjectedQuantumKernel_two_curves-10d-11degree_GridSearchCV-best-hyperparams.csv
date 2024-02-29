@@ -3,4 +3,4 @@ C,10.0
 gamma_factor,1.0
 max_vmap,1
 t,0.1
-trotter_steps,1
+trotter_steps,3
