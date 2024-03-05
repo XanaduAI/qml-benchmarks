@@ -7,11 +7,13 @@ from qml_benchmarks.model_utils import train
 from sklearn.preprocessing import StandardScaler
 import itertools
 from qml_benchmarks.model_utils import chunk_vmapped_fn
+
 jax.config.update("jax_enable_x64", True)
 
 sigmaZ = jnp.array([[1, 0], [0, -1]])
 sigmaX = jnp.array([[0, 1], [1, 0]])
 sigmaY = jnp.array([[0, -1j], [1j, 0]])
+
 
 def tensor_ops(ops, idxs, n_qubits):
     """
@@ -25,6 +27,7 @@ def tensor_ops(ops, idxs, n_qubits):
         else:
             tensor_op = jnp.kron(tensor_op, jnp.eye(2))
     return tensor_op
+
 
 class QuantumBoltzmannMachine(BaseEstimator, ClassifierMixin):
 
@@ -109,7 +112,7 @@ class QuantumBoltzmannMachine(BaseEstimator, ClassifierMixin):
         # which will be initialised by calling "fit"
         self.params_ = None  # Dictionary containing the trainable parameters
         self.n_qubits = None
-        self.n_visible = None #number of visible qubits
+        self.n_visible = None  # number of visible qubits
         self.scaler = None  # data scaler will be fitted on training data
         self.circuit = None
 
@@ -122,7 +125,7 @@ class QuantumBoltzmannMachine(BaseEstimator, ClassifierMixin):
         self.n_params_ = 2 * len(singles) + len(doubles)
 
         if self.observable_type == 'sum':
-            obs = sum([tensor_ops([sigmaZ], (i,), self.n_qubits) for i in range(self.n_visible)])/self.n_visible
+            obs = sum([tensor_ops([sigmaZ], (i,), self.n_qubits) for i in range(self.n_visible)]) / self.n_visible
         elif self.observable_type == 'product':
             obs = 1.
             for i in range(self.n_visible):
@@ -149,7 +152,7 @@ class QuantumBoltzmannMachine(BaseEstimator, ClassifierMixin):
             return jnp.trace(jnp.matmul(state, obs))
 
         if self.jit: model = jax.jit(model)
-        self.forward = jax.vmap(model,in_axes=(None,0))
+        self.forward = jax.vmap(model, in_axes=(None, 0))
         self.chunked_forward = chunk_vmapped_fn(self.forward, 1, self.max_vmap)
 
         return self.forward
@@ -174,8 +177,8 @@ class QuantumBoltzmannMachine(BaseEstimator, ClassifierMixin):
         if self.visible_qubits == 'single':
             self.n_visible = 1
         elif self.visible_qubits == 'half':
-            self.n_visible = self.n_qubits//2
-        elif self.visible_qubits == 'all':
+            self.n_visible = self.n_qubits // 2
+        elif self.visible_qubits == 'full':
             self.n_visible = self.n_qubits
 
         self.construct_model()
@@ -206,7 +209,7 @@ class QuantumBoltzmannMachine(BaseEstimator, ClassifierMixin):
             vals = self.forward(params['thetas'], X)
             probs = (1 + vals) / 2
             y = jax.nn.relu(y)  # convert to 0,1
-            return jnp.mean(-y*jnp.log(probs) - (1-y)*jnp.log(1-probs))
+            return jnp.mean(-y * jnp.log(probs) - (1 - y) * jnp.log(1 - probs))
 
         if self.jit: loss_fn = jax.jit(loss_fn)
         self.params_ = train(self, loss_fn, optimizer, X, y, self.generate_key)
@@ -258,25 +261,25 @@ class QuantumBoltzmannMachineSeparable(QuantumBoltzmannMachine):
 
     def construct_model(self):
         def qubit_gibbs_state(thetas, x):
-            H = sigmaZ*jnp.dot(thetas[0],x)+sigmaX*jnp.dot(thetas[1],x)
+            H = sigmaZ * jnp.dot(thetas[0], x) + sigmaX * jnp.dot(thetas[1], x)
             state = jax.scipy.linalg.expm(-H / self.temperature, max_squarings=32)
             return state / jnp.trace(state)
 
         def model(thetas, x):
-            gibbs_states = [qubit_gibbs_state(thetas[2*i:2*i+2,:],x) for i in range(self.n_visible)]
-            expvals = jnp.array([jnp.trace(jnp.matmul(state, sigmaZ)) for state in gibbs_states ])
-            if self.observable_type=='sum':
+            gibbs_states = [qubit_gibbs_state(thetas[2 * i:2 * i + 2, :], x) for i in range(self.n_visible)]
+            expvals = jnp.array([jnp.trace(jnp.matmul(state, sigmaZ)) for state in gibbs_states])
+            if self.observable_type == 'sum':
                 return jnp.mean(expvals)
-            elif self.observable_type=='product':
+            elif self.observable_type == 'product':
                 return jnp.prod(expvals)
 
         if self.jit: model = jax.jit(model)
-        self.forward = jax.vmap(model,in_axes=(None,0))
+        self.forward = jax.vmap(model, in_axes=(None, 0))
         self.chunked_forward = chunk_vmapped_fn(self.forward, 1, self.max_vmap)
 
         return self.forward
 
     def initialize_params(self):
         # initialise the trainable parameters
-        params = jax.random.normal(shape=(2*self.n_qubits, self.n_qubits), key=self.generate_key())
+        params = jax.random.normal(shape=(2 * self.n_qubits, self.n_qubits), key=self.generate_key())
         self.params_ = {"thetas": params}

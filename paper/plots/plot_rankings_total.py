@@ -105,7 +105,6 @@ clfs_qnn = [
     "QuantumMetricLearner",
     "QuantumBoltzmannMachine",
     "TreeTensorClassifier",
-    # "SeparableVariationalClassifier"
 ]
 
 clfs_kernel = [
@@ -113,7 +112,6 @@ clfs_kernel = [
     "ProjectedQuantumKernel",
     "QuantumKitchenSinks",
     "SVC",
-    # "SeparableKernelClassifier",
 ]
 
 clfs_cnn = ["ConvolutionalNeuralNetwork", "WeiNet", "QuanvolutionalNeuralNetwork"]
@@ -220,5 +218,5 @@ sns.despine()
 
 plt.xlabel("number of rankings")
 plt.tight_layout()
-plt.savefig(f"figures/ranking-all.png")
+plt.savefig(f"figures/ranking-all.png", bbox_inches="tight")
 plt.show()

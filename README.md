@@ -176,10 +176,10 @@ generate results for a hyperparameter search for any model and dataset. The scri
 can be run as
 
 ```
-python run_hyperparameter_search.py --classifier-name "DataReuploadingClassifier" --dataset-path "dataset.csv"
+python run_hyperparameter_search.py --classifier-name "DataReuploadingClassifier" --dataset-path "my_dataset.csv"
 ```
 
-where `dataset.csv` is a CSV file containing the training data, where each column is a feature
+where `my_dataset.csv` is a CSV file containing the training data such that each column is a feature
 and the last column is the target.
 
 Unless otherwise specified, the hyperparameter grid is loaded from `qml_benchmarks/hyperparameter_settings.py`.
@@ -190,7 +190,7 @@ For example, for the `DataReuploadingClassifier` we can run:
 ```
 python run_hyperparameter_search.py \
     --classifier-name DataReuploadingClassifier \
-    --dataset-path "../paper/benchmarks/hidden_manifold/hidden_manifold-6manifold-2d_train.csv" \
+    --dataset-path "my_dataset.csv" \
     --n_layers 1 2 \
     --observable_type "single" "full"\
     --learning_rate 0.001 \

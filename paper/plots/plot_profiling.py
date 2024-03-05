@@ -23,13 +23,6 @@ import os
 os.makedirs("figures", exist_ok=True)
 import seaborn as sns
 
-# Set the Seaborn color palette
-from matplotlib.colors import ListedColormap
-
-# Set up the custom colormap
-palette = sns.color_palette("deep")
-cmap = ListedColormap(palette)
-
 sns.set(rc={"figure.figsize": (6, 3)})
 sns.set(font_scale=1.1)
 sns.set_style("white")
@@ -67,7 +60,7 @@ df = df[~df["measure"].str.contains(".sd")]
 df = df.drop(["score", "measure"], axis=1)
 
 # average over datasets
-df = df.groupby("dataset", axis=0).mean()
+df = df.groupby("dataset").mean()
 df = df.transpose()
 df = df.rename(index={f"score_{i}": str(i) for i in range(2, 21)})
 df = df[
@@ -82,18 +75,18 @@ df = df[
     ]
 ]
 
-df.plot(colormap=cmap)
-# df.plot(
-#     style={
-#         "LINEARLY SEPARABLE": "gold",
-#         "MNIST PCA-": "darkorange",
-#         "HIDDEN MANIFOLD": "darkgoldenrod",
-#         "TWO CURVES": "tan",
-#         "HIDDEN MANIFOLD DIFF": "darkgreen",
-#         "TWO CURVES DIFF": "red",
-#         "HYPERPLANES DIFF": "darkblue",
-#     }
-# )
+df.plot(
+    style={
+        "LINEARLY SEPARABLE": "gold",
+        "MNIST PCA-": "darkorange",
+        "HIDDEN MANIFOLD": "darkgoldenrod",
+        "TWO CURVES": "tan",
+        "HIDDEN MANIFOLD DIFF": "midnightblue",
+        "TWO CURVES DIFF": "deeppink",
+        "HYPERPLANES DIFF": "darkviolet",
+    },
+    lw=2.3
+)
 sns.despine()
 
 plt.xlabel("variable")

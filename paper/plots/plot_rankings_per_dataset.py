@@ -75,14 +75,14 @@ datasets = {
         "number of manifolds",
     ],
     "TWO CURVES": [
-        "../results/two_curves",
+        "../results/two_curves_diff",
         "two_curves-5degree-0.1offset-",
         "d_GridSearchCV-best-hyperparams-results.csv",
         "number of features",
     ],
     "TWO CURVES DIFF": [
         "../results/two_curves_diff",
-        "two_curves-10d-",
+        "two_curves_-10d-",
         "degree_GridSearchCV-best-hyperparams-results.csv",
         "degree",
     ],
