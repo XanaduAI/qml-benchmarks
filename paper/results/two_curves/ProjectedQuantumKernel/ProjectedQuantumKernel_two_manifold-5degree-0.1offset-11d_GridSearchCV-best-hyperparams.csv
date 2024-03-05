@@ -1,6 +1,0 @@
-hyperparameter,best_value
-C,100.0
-gamma_factor,1.0
-max_vmap,100
-t,0.01
-trotter_steps,1

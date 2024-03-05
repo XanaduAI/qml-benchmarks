@@ -218,5 +218,5 @@ sns.despine()
 
 plt.xlabel("number of rankings")
 plt.tight_layout()
-plt.savefig(f"figures/ranking-all.png")
+plt.savefig(f"figures/ranking-all.png", bbox_inches="tight")
 plt.show()
