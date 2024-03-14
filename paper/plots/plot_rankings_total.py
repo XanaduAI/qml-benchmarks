@@ -54,7 +54,7 @@ datasets = {
     "bars_and_stripes": [
         "../results/bars_and_stripes",
         "bars_and_stripes_",
-        "_GridSearchCV-best-hyperparams-results.csv",
+        "_0.5noise_GridSearchCV-best-hyperparams-results.csv",
         "size of image",
     ],
     "linearly-separable": [
@@ -159,6 +159,7 @@ for clf_family, ax in zip(clfs, axes):
                 try:
                     df_new = pd.read_csv(path_to_results, index_col=0)
                 except:
+                    print(dataset_name)
                     continue
 
                 # write into new dataframe and add
