@@ -13,13 +13,17 @@
 # limitations under the License.
 
 import time
+
+import catalyst
 import pennylane as qml
 import numpy as np
 import jax
+import jax.numpy as jnp
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.svm import SVC
 from sklearn.preprocessing import MinMaxScaler
 from qml_benchmarks.model_utils import chunk_vmapped_fn
+from catalyst import qjit
 
 jax.config.update("jax_enable_x64", True)
 
@@ -30,6 +34,7 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
         svm=SVC(kernel="precomputed", probability=True),
         repeats=2,
         C=1.0,
+        dev_type = 'default.qubit.jax',
         use_jax=None,
         vmap=None,
         jit=None,
@@ -98,36 +103,40 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
     def construct_circuit(self):
         dev = qml.device(self.dev_type, wires=self.n_qubits_)
 
-        @qml.qnode(dev, **self.qnode_kwargs)
-        def circuit(x):
-            """
-            circuit used to precomute the kernel matrix K(x_1,x_2).
-            Args:
-                x (np.array): vector of length 2*num_feature that is the concatenation of x_1 and x_2
+        def wrapped_circuit(x):
+            @qml.qnode(dev, **self.qnode_kwargs)
+            def circuit(x):
+                """
+                circuit used to precomute the kernel matrix K(x_1,x_2).
+                Args:
+                    x (np.array): vector of length 2*num_feature that is the concatenation of x_1 and x_2
 
-            Returns:
-                (float) the value of the kernel fucntion K(x_1,x_2)
-            """
-            qml.IQPEmbedding(
-                x[: self.n_qubits_], wires=range(self.n_qubits_), n_repeats=self.repeats
-            )
-            qml.adjoint(
+                Returns:
+                    (float) the value of the kernel fucntion K(x_1,x_2)
+                """
                 qml.IQPEmbedding(
-                    x[self.n_qubits_ :],
-                    wires=range(self.n_qubits_),
-                    n_repeats=self.repeats,
+                    x[: self.n_qubits_], wires=range(self.n_qubits_), n_repeats=self.repeats
                 )
-            )
-            return qml.probs()
+                qml.adjoint(
+                    qml.IQPEmbedding(
+                        x[self.n_qubits_ :],
+                        wires=range(self.n_qubits_),
+                        n_repeats=self.repeats,
+                    )
+                )
 
-        self.circuit = circuit
+                return qml.probs()
+            return circuit(x)[0]
+
+        circuit = wrapped_circuit
 
         if self.use_jax and self.jit:
             circuit = jax.jit(circuit)
         elif "lightning" in self.dev_type and self.jit:
-            from catalyst import qjit
-
             circuit = qjit(circuit)
+
+        self.circuit = circuit
+
         return circuit
 
     def precompute_kernel(self, X1, X2):
@@ -151,14 +160,23 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
             self.batched_circuit = chunk_vmapped_fn(
                 jax.vmap(circuit, 0), start=0, max_vmap=self.max_vmap
             )
-            kernel_values = self.batched_circuit(Z)[:, 0]
+            kernel_values = self.batched_circuit(Z)
             # reshape the values into the kernel matrix
             kernel_matrix = np.reshape(kernel_values, (dim1, dim2))
         else:
-            kernel_matrix = np.empty((dim1, dim2))
-            for i, x in enumerate(X1):
-                for j, y in enumerate(X2):
-                    kernel_matrix[i, j] = circuit(np.concatenate((x, y)))[0]
+            # could also use catalyst.vmap like as above, although I think it does basically the same thing as this.
+            X1 = jnp.array(X1)
+            X2 = jnp.array(X2)
+            @qjit(autograph=True)
+            def construct_kernel(X1,X2):
+                dim1 = len(X1)
+                dim2 = len(X2)
+                kernel_matrix = jnp.zeros([dim1, dim2])
+                for i, x in enumerate(X1):
+                    for j, y in enumerate(X2):
+                       kernel_matrix = kernel_matrix.at[i,j].set(circuit(jnp.concatenate((x, y))))
+                return  kernel_matrix
+            kernel_matrix = construct_kernel(X1,X2)
 
         return kernel_matrix
 
