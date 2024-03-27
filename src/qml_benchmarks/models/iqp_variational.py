@@ -16,6 +16,7 @@ import pennylane as qml
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.preprocessing import MinMaxScaler
+from catalyst import qjit
 from qml_benchmarks.model_utils import *
 
 
@@ -98,9 +99,7 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
         self.circuit = None
 
     def generate_key(self):
-        if self.use_jax:
-            return jax.random.PRNGKey(self.rng.integers(1000000))
-        return self.rng.integers(1000000)
+        return jax.random.PRNGKey(self.rng.integers(1000000))
 
     def construct_model(self):
         dev = qml.device(self.dev_type, wires=self.n_qubits_)
@@ -139,19 +138,18 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
         else:
 
             @qml.qnode(dev, **self.qnode_kwargs)
-            def circuit(weights, x):
+            def circuit(params, x):
                 """
                 The variational circuit from the plots. Uses an IQP data embedding.
                 We use the same observable as in the plots.
                 """
                 qml.IQPEmbedding(x, wires=range(self.n_qubits_), n_repeats=self.repeats)
                 qml.StronglyEntanglingLayers(
-                    weights, wires=range(self.n_qubits_), imprimitive=qml.CZ
+                    params["weights"], wires=range(self.n_qubits_), imprimitive=qml.CZ
                 )
                 return qml.expval(qml.PauliZ(0) @ qml.PauliZ(1))
 
             if self.jit:
-                from catalyst import qjit
                 circuit = qjit(circuit)
                 # circuit(np.random.rand(self.n_layers, self.n_qubits_, 3), np.random.rand(self.n_qubits_))
 
@@ -240,10 +238,10 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
         else:
             X = np.array(X)
             y = np.array(y)
-            optimizer = qml.AdamOptimizer
+            optimizer = optax.adam
 
-            def loss_fn(weights, X, y):
-                expvals = self.forward(weights, X)
+            def loss_fn(params, X, y):
+                expvals = self.forward(params, X)
                 probs = (1 - expvals * y) / 2  # the probs of incorrect classification
                 return jnp.mean(probs)
 
@@ -251,7 +249,7 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
                 from catalyst import qjit
                 loss_fn = qjit(loss_fn)
 
-            self.params_ = train_without_jax(self, loss_fn, optimizer, X, y, self.generate_key)
+            self.params_ = train_with_catalyst(self, loss_fn, optimizer, X, y, self.generate_key)
 
         return self
 
@@ -285,7 +283,7 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
             else:
                 predictions = self.forward(self.params_, X)
         else:
-            predictions = self.forward(self.params_["weights"], X)
+            predictions = self.forward(self.params_, X)
         predictions_2d = np.c_[(1 - predictions) / 2, (1 + predictions) / 2]
         return predictions_2d
 

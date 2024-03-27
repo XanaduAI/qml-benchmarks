@@ -18,6 +18,10 @@ import operator
 from functools import reduce
 import logging
 import time
+
+import pennylane as qml
+import catalyst
+from catalyst import qjit
 import numpy as np
 import optax
 import jax
@@ -88,6 +92,8 @@ def train(model, loss_fn, optimizer, X, y, random_key_generator, convergence_int
         params, opt_state, loss_val = update(params, opt_state, X_batch, y_batch)
         loss_history.append(loss_val)
         logging.debug(f"{step} - loss: {loss_val}")
+
+        print(loss_val)
 
         if np.isnan(loss_val):
             logging.info(f"nan encountered. Training aborted.")
@@ -168,6 +174,75 @@ def train_without_jax(
         model.params_[key] = params[i]
 
     return model.params_
+
+
+def train_with_catalyst(model, loss_fn, optimizer, X, y, random_key_generator, convergence_interval=200):
+
+    params = model.params_
+    opt = optimizer(learning_rate=model.learning_rate)
+
+    @qjit
+    def update(i, args):
+        params, opt_state, X, y, loss_history, key = args
+        X_batch, y_batch = get_batch(X, y, key, batch_size=model.batch_size)
+        loss = loss_fn(params, X_batch, y_batch)
+        loss_history =  loss_history.at[i].set(loss)
+        #backprop is not supported in catalyst yet, falling back on finite diff
+        grads = catalyst.grad(loss_fn, method="fd")(params,X_batch, y_batch)
+        updates, opt_state = opt.update(grads, opt_state)
+        params = optax.apply_updates(params, updates)
+        key, subkey = jax.random.split(key)
+        return (params, opt_state, X, y, loss_history, subkey)
+
+    @qjit
+    def optimize(params, X, y, steps, loss_history, opt_state, key):
+        args = (params, opt_state, X, y, loss_history, key)
+        (params, opt_state, _, _, loss_history, key) = catalyst.for_loop(0,steps,1)(update)(args)
+        return params, loss_history, opt_state
+
+    def train_until_convergence(params, X, y):
+        converged = False
+        current_steps = 0
+        opt_state = opt.init(params)
+        loss_histories = []
+        while current_steps < model.max_steps:
+
+            key = random_key_generator()
+            loss_history = jnp.zeros(convergence_interval)
+            params, loss_history, opt_state = optimize(params, X, y, convergence_interval, loss_history, opt_state, key)
+            loss_histories.append(loss_history)
+            current_steps += convergence_interval
+
+            if True in jnp.isnan(loss_history):
+                logging.info(f"nan encountered. Training aborted.")
+                break
+
+            if len(loss_histories)>=2:
+                average1 = jnp.mean(loss_histories[-1])
+                average2 = jnp.mean(loss_histories[-2])
+                std1 = jnp.std(loss_history[-1])
+                if jnp.abs(average2 - average1) <= std1 / jnp.sqrt(convergence_interval) / 2:
+                    logging.info(f"Model {model.__class__.__name__} converged after {step} steps.")
+                    converged = True
+                    break
+
+        if not converged:
+            print("Loss did not converge:", loss_history)
+            raise ConvergenceWarning(
+                f"Model {model.__class__.__name__} has not converged after the maximum number of {model.max_steps} steps."
+            )
+
+        return params, jnp.concatenate(loss_histories)
+
+    start = time.time()
+    params, loss_history = train_until_convergence(params, X, y)
+    end = time.time()
+    loss_history = np.array(loss_history)
+    model.loss_history_ = loss_history / np.max(np.abs(loss_history))
+    model.training_time_ = end - start
+
+    return params
+
 
 
 def get_batch(X, y, rnd_key, batch_size=32):
