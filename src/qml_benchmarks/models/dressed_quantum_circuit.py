@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import pennylane as qml
+import catalyst
+from catalyst import qjit
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.base import BaseEstimator, ClassifierMixin
@@ -26,6 +28,8 @@ class DressedQuantumCircuitClassifier(BaseEstimator, ClassifierMixin):
         learning_rate=0.001,
         batch_size=32,
         max_vmap=None,
+        use_jax = False,
+        vmap = False,
         jit=True,
         max_steps=100000,
         convergence_interval=200,
@@ -66,6 +70,8 @@ class DressedQuantumCircuitClassifier(BaseEstimator, ClassifierMixin):
         self.convergence_interval = convergence_interval
         self.dev_type = dev_type
         self.qnode_kwargs = qnode_kwargs
+        self.use_jax = use_jax
+        self.vmap = vmap
         self.jit = jit
         self.scaling = scaling
         self.random_state = random_state
@@ -130,9 +136,19 @@ class DressedQuantumCircuitClassifier(BaseEstimator, ClassifierMixin):
             return x
 
         if self.jit:
-            dressed_circuit = jax.jit(dressed_circuit)
-        self.forward = jax.vmap(dressed_circuit, in_axes=(None, 0))
-        self.chunked_forward = chunk_vmapped_fn(self.forward, 1, self.max_vmap)
+            if self.use_jax:
+                dressed_circuit = jax.jit(dressed_circuit)
+            else:
+                dressed_circuit = qjit(dressed_circuit, autograph=True)
+
+        if self.vmap and self.use_jax:
+            self.forward = jax.vmap(dressed_circuit, in_axes=(None, 0))
+            self.chunked_forward = chunk_vmapped_fn(self.forward, 1, self.max_vmap)
+
+        else:
+            def forward(params,X):
+                return jnp.array([dressed_circuit(params,x) for x in X])
+            self.forward = forward
 
         return self.forward
 
@@ -199,16 +215,25 @@ class DressedQuantumCircuitClassifier(BaseEstimator, ClassifierMixin):
             return jnp.mean(optax.softmax_cross_entropy(vals, labels))
 
         if self.jit:
-            loss_fn = jax.jit(loss_fn)
-        self.params_ = train(
-            self,
-            loss_fn,
-            optimizer,
-            X,
-            y,
-            self.generate_key,
-            convergence_interval=self.convergence_interval,
-        )
+            if self.use_jax:
+                loss_fn = jax.jit(loss_fn)
+            else:
+                loss_fn = qjit(loss_fn)
+
+        if self.use_jax:
+            self.params_ = train(
+                self,
+                loss_fn,
+                optimizer,
+                X,
+                y,
+                self.generate_key,
+                convergence_interval=self.convergence_interval,
+            )
+        else:
+            self.params_ = train_with_catalyst(
+                self, loss_fn, optimizer, X, y, self.generate_key,
+                convergence_interval=self.convergence_interval)
 
         return self
 
@@ -236,7 +261,11 @@ class DressedQuantumCircuitClassifier(BaseEstimator, ClassifierMixin):
             (n_samples, n_classes)
         """
         X = self.transform(X)
-        return jax.nn.softmax(self.chunked_forward(self.params_, X))
+        if self.vmap:
+            out = self.chunked_forward(self.params_, X)
+        else:
+            out = self.forward(self.params_, X)
+        return jax.nn.softmax(out)
 
     def transform(self, X, preprocess=True):
         """
