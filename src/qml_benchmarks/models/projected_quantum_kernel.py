@@ -174,12 +174,12 @@ class ProjectedQuantumKernel(BaseEstimator, ClassifierMixin):
                 embedding(x)
                 return [qml.expval(qml.PauliZ(wires=i)) for i in range(self.n_qubits_)]
 
-            # @qjit(autograph=True)
+            @qjit(autograph=True)
             def circuit_as_array(x):
                 xvals = jnp.array(circuitX(x))
                 yvals = jnp.array(circuitY(x))
                 zvals = jnp.array(circuitZ(x))
-                return jnp.vstack((xvals, yvals, zvals))
+                return jnp.concatenate((xvals, yvals, zvals))
 
         else:
             @qml.qnode(dev, **self.qnode_kwargs)
@@ -203,7 +203,7 @@ class ProjectedQuantumKernel(BaseEstimator, ClassifierMixin):
         elif "lightning" in self.dev_type and self.jit:
             # circuit_as_array = qjit(circuit_as_array)
             def batch_circuit_as_array(X):
-                return jnp.concatenate([jnp.array(circuitX(x)) for x in X])
+                return jnp.array([circuit_as_array(x) for x in X])
             circuit_as_array = batch_circuit_as_array
 
         return circuit_as_array
