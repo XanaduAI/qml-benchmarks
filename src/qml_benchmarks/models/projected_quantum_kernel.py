@@ -13,6 +13,9 @@
 # limitations under the License.
 
 import time
+
+import catalyst
+from catalyst import qjit
 import pennylane as qml
 import numpy as np
 import jax
@@ -34,11 +37,13 @@ class ProjectedQuantumKernel(BaseEstimator, ClassifierMixin):
         embedding="Hamiltonian",
         t=1.0 / 3,
         trotter_steps=5,
+        use_jax=False,
         jit=True,
+        vmap = False,
         max_vmap=None,
         scaling=1.0,
         dev_type="default.qubit.jax",
-        qnode_kwargs={"interface": "jax-jit", "diff_method": None},
+        qnode_kwargs={},
         random_state=42,
     ):
         r"""
@@ -91,6 +96,8 @@ class ProjectedQuantumKernel(BaseEstimator, ClassifierMixin):
         self.embedding = embedding
         self.t = t
         self.trotter_steps = trotter_steps
+        self.use_jax = use_jax
+        self.vmap = vmap
         self.jit = jit
         self.dev_type = dev_type
         self.qnode_kwargs = qnode_kwargs
@@ -146,24 +153,58 @@ class ProjectedQuantumKernel(BaseEstimator, ClassifierMixin):
 
         dev = qml.device(self.dev_type, wires=self.n_qubits_)
 
-        @qml.qnode(dev, **self.qnode_kwargs)
-        def circuit(x):
-            embedding(x)
-            return (
-                [qml.expval(qml.PauliX(wires=i)) for i in range(self.n_qubits_)]
-                + [qml.expval(qml.PauliY(wires=i)) for i in range(self.n_qubits_)]
-                + [qml.expval(qml.PauliZ(wires=i)) for i in range(self.n_qubits_)]
-            )
+        if "lightning" in self.dev_type and self.jit:
+            # currently only support for returning expvals of qubit-wise commuting observables,
+            # so we split into three circuits
+            @qjit(autograph=True)
+            @qml.qnode(dev, **self.qnode_kwargs)
+            def circuitX(x):
+                embedding(x)
+                return [qml.expval(qml.PauliX(wires=i)) for i in range(self.n_qubits_)]
 
-        self.circuit = circuit
+            @qjit(autograph=True)
+            @qml.qnode(dev, **self.qnode_kwargs)
+            def circuitY(x):
+                embedding(x)
+                return [qml.expval(qml.PauliY(wires=i)) for i in range(self.n_qubits_)]
 
-        def circuit_as_array(x):
-            return jnp.array(circuit(x))
+            @qjit(autograph=True)
+            @qml.qnode(dev, **self.qnode_kwargs)
+            def circuitZ(x):
+                embedding(x)
+                return [qml.expval(qml.PauliZ(wires=i)) for i in range(self.n_qubits_)]
 
-        if self.jit:
+            # @qjit(autograph=True)
+            def circuit_as_array(x):
+                xvals = jnp.array(circuitX(x))
+                yvals = jnp.array(circuitY(x))
+                zvals = jnp.array(circuitZ(x))
+                return jnp.vstack((xvals, yvals, zvals))
+
+        else:
+            @qml.qnode(dev, **self.qnode_kwargs)
+            def circuit(x):
+                embedding(x)
+                return (
+                        [qml.expval(qml.PauliX(wires=i)) for i in range(self.n_qubits_)]
+                        + [qml.expval(qml.PauliY(wires=i)) for i in range(self.n_qubits_)]
+                        + [qml.expval(qml.PauliZ(wires=i)) for i in range(self.n_qubits_)]
+                )
+
+            def circuit_as_array(x):
+                return jnp.array(circuit(x))
+
+
+        if self.use_jax and self.jit:
             circuit_as_array = jax.jit(circuit_as_array)
-        circuit_as_array = jax.vmap(circuit_as_array, in_axes=(0))
-        circuit_as_array = chunk_vmapped_fn(circuit_as_array, 0, self.max_vmap)
+            circuit_as_array = jax.vmap(circuit_as_array, in_axes=(0))
+            circuit_as_array = chunk_vmapped_fn(circuit_as_array, 0, self.max_vmap)
+
+        elif "lightning" in self.dev_type and self.jit:
+            # circuit_as_array = qjit(circuit_as_array)
+            def batch_circuit_as_array(X):
+                return jnp.concatenate([jnp.array(circuitX(x)) for x in X])
+            circuit_as_array = batch_circuit_as_array
 
         return circuit_as_array
 
@@ -194,21 +235,48 @@ class ProjectedQuantumKernel(BaseEstimator, ClassifierMixin):
         valsZ_X1 = valsX1[:, 2]
         valsZ_X2 = valsX2[:, 2]
 
-        all_vals_X1 = np.reshape(np.concatenate((valsX_X1, valsY_X1, valsZ_X1)), -1)
+        all_vals_X1 = np.reshape(jnp.concatenate((valsX_X1, valsY_X1, valsZ_X1)), -1)
         default_gamma = 1 / np.var(all_vals_X1) / self.n_features_
 
-        # construct kernel following plots
-        kernel_matrix = np.zeros([dim1, dim2])
+        if self.use_jax:
+            #no actually using JAX here but it is part of the JAX pipeline
+            kernel_matrix = np.zeros([dim1, dim2])
+            for i in range(dim1):
+                for j in range(dim2):
+                    sumX = sum([(valsX_X1[i, q] - valsX_X2[j, q]) ** 2 for q in range(self.n_qubits_)])
+                    sumY = sum([(valsY_X1[i, q] - valsY_X2[j, q]) ** 2 for q in range(self.n_qubits_)])
+                    sumZ = sum([(valsZ_X1[i, q] - valsZ_X2[j, q]) ** 2 for q in range(self.n_qubits_)])
 
-        for i in range(dim1):
-            for j in range(dim2):
-                sumX = sum([(valsX_X1[i, q] - valsX_X2[j, q]) ** 2 for q in range(self.n_qubits_)])
-                sumY = sum([(valsY_X1[i, q] - valsY_X2[j, q]) ** 2 for q in range(self.n_qubits_)])
-                sumZ = sum([(valsZ_X1[i, q] - valsZ_X2[j, q]) ** 2 for q in range(self.n_qubits_)])
+                    kernel_matrix[i, j] = np.exp(
+                        -default_gamma * self.gamma_factor * (sumX + sumY + sumZ)
+                    )
 
-                kernel_matrix[i, j] = np.exp(
-                    -default_gamma * self.gamma_factor * (sumX + sumY + sumZ)
-                )
+        else:
+            valsX_X1 = jnp.array(valsX_X1)
+            valsX_X2 = jnp.array(valsX_X2)
+            valsY_X1 = jnp.array(valsY_X1)
+            valsY_X2 = jnp.array(valsY_X2)
+            valsZ_X1 = jnp.array(valsZ_X1)
+            valsZ_X2 = jnp.array(valsZ_X2)
+
+            @qjit(autograph=True)
+            def construct_kernel(valsX_X1, valsX_X2, valsY_X1, valsY_X2, valsZ_X1, valsZ_X2,
+                                 dim1, dim2, default_gamma):
+                kernel_matrix = jnp.zeros([dim1, dim2])
+                for i in range(dim1):
+                    for j in range(dim2):
+                        sumX = sum([(valsX_X1[i, q] - valsX_X2[j, q]) ** 2 for q in range(self.n_qubits_)])
+                        sumY = sum([(valsY_X1[i, q] - valsY_X2[j, q]) ** 2 for q in range(self.n_qubits_)])
+                        sumZ = sum([(valsZ_X1[i, q] - valsZ_X2[j, q]) ** 2 for q in range(self.n_qubits_)])
+
+                        kernel_matrix = kernel_matrix.at[i,j].set(np.exp(
+                            -default_gamma * self.gamma_factor * (sumX + sumY + sumZ))
+                        )
+                return kernel_matrix
+
+            kernel_matrix = construct_kernel(valsX_X1, valsX_X2, valsY_X1, valsY_X2, valsZ_X1, valsZ_X2,
+                                 dim1, dim2, default_gamma)
+
         return kernel_matrix
 
     def initialize(self, n_features, classes=None):
@@ -251,11 +319,12 @@ class ProjectedQuantumKernel(BaseEstimator, ClassifierMixin):
         self.scaler = MinMaxScaler(feature_range=(-np.pi / 2, np.pi / 2))
         self.scaler.fit(X)
         X = self.transform(X)
+        X = jnp.array(X)
 
         self.params_ = {"X_train": X}
+        start = time.time()
         kernel_matrix = self.precompute_kernel(X, X)
 
-        start = time.time()
         self.svm.C = self.C
         self.svm.fit(kernel_matrix, y)
         end = time.time()
