@@ -1,0 +1,45 @@
+#!/bin/bash
+#  salloc -q interactive -C cpu -t 4:00:00 -A nstaff 
+
+IMG=balewski/ubu22-pennylane:p3
+#IMG=balewski/ubu22-qiskit1.0:p2b # + QML + IonQ +Braket + pytorch+PennyLane
+
+CFSH=/global/cfs/cdirs/mpccc/balewski/
+
+echo launch image $IMG
+echo you are launching Podman image ...  remeber to exit
+
+JNB_PORT=' '
+BASE_DIR=/quantumMind   # here git has home
+WORK_DIR=$BASE_DIR/PennyLane
+WORK_DIR2=/pennylane-qml-benchmarks
+DATA_VAULT=${CFSH}/quantDataVault2024
+DATA_DIR=/dataPennyLane_tmp
+
+echo "The number of arguments is: $#"
+#  encoded variables:    jnb
+for var in "$@"; do
+  echo "The length of argument '$var' is: ${#var}"
+  if [[ "jnb" ==  $var ]];  then
+      #JNB_PORT="    --publish 8833:8833 "
+      JNB_PORT="    -p 8833:8833 "
+     echo added  $JNB_PORT
+     echo "  cd notebooks;  jupyter notebook --ip 0.0.0.0 --no-browser --allow-root --port  8833 "
+  fi
+  # ... more ...
+done
+
+
+podman-hpc run -it \
+   --volume $HOME:/home \
+   --volume $CFSH/$BASE_DIR:/$BASE_DIR \
+   --volume $CFSH/$WORK_DIR:$WORK_DIR \
+   --volume $CFSH/$WORK_DIR2:$WORK_DIR2 \
+   --volume ${DATA_VAULT}:/dataVault \
+   --volume ${DATA_VAULT}/$DATA_DIR:/dataPennyLane_tmp \
+   -e HDF5_USE_FILE_LOCKING='FALSE' \
+   -e PennyLane_dataVault=/dataPennyLane_tmp \
+   --workdir $WORK_DIR  \
+   $IMG /bin/bash
+
+
