@@ -2,7 +2,7 @@
 #  salloc -q interactive -C cpu -t 4:00:00 -A nstaff 
 
 IMG=balewski/ubu22-pennylane:p3
-CFSH=/global/cfs/cdirs/mpccc/balewski/
+CFSH=/global/cfs/cdirs/mpccc/jbowles/
 
 echo launch image $IMG
 echo you are launching Podman image ...  remeber to exit
@@ -10,18 +10,13 @@ echo you are launching Podman image ...  remeber to exit
 JNB_PORT=' '
 BASE_DIR=/qml-benchmarks   # here git has home
 WORK_DIR=$BASE_DIR/nersc
-DATA_VAULT=${CFSH}/quantDataVault2024
-DATA_DIR=/dataPennyLane_tmp
 
 
 podman-hpc run -it \
    --volume $HOME:/home \
    --volume $CFSH/$BASE_DIR:/$BASE_DIR \
    --volume $CFSH/$WORK_DIR:$WORK_DIR \
-   --volume ${DATA_VAULT}:/dataVault \
-   --volume ${DATA_VAULT}/$DATA_DIR:/dataPennyLane_tmp \
    -e HDF5_USE_FILE_LOCKING='FALSE' \
-   -e PennyLane_dataVault=/dataPennyLane_tmp \
    --workdir $WORK_DIR  \
    $IMG /bin/bash
 
