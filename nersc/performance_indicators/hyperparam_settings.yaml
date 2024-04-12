@@ -1,0 +1,4 @@
+IQPVariationalClassifier:
+  learning_rate: 0.01
+  n_layers: 15
+  repeats: 10
