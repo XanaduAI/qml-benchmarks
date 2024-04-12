@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Get the job ID of the last submitted job
-last_job_id=$(squeue -u $USER -t PD -h -o "%A" | tail -n 1)
+# Get the job ID of the last completed job
+last_job_id=$(sacct --format=JobID -n -u $USER -S "$(date -d yesterday +"%Y-%m-%d")" -o JobID | tail -n 1)
 
 # Check if a job ID was found
 if [ -z "$last_job_id" ]; then
-    echo "No pending job found."
+    echo "No completed job found."
     exit 1
 fi
 
