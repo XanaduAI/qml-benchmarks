@@ -84,16 +84,16 @@ def train(model, loss_fn, optimizer, X, y, random_key_generator, convergence_int
         return params, opt_state, loss_val
 
     loss_history = []
+    steptimes = []
     converged = False
     start = time.time()
     for step in range(model.max_steps):
         key = random_key_generator()
         X_batch, y_batch = get_batch(X, y, key, batch_size=model.batch_size)
         params, opt_state, loss_val = update(params, opt_state, X_batch, y_batch)
+        steptimes.append(time.time() - start)
         loss_history.append(loss_val)
         logging.debug(f"{step} - loss: {loss_val}")
-
-        print(loss_val)
 
         if np.isnan(loss_val):
             logging.info(f"nan encountered. Training aborted.")
@@ -112,15 +112,18 @@ def train(model, loss_fn, optimizer, X, y, random_key_generator, convergence_int
                 break
 
     end = time.time()
-    loss_history = np.array(loss_history)
-    model.loss_history_ = loss_history / np.max(np.abs(loss_history))
+    loss_history / np.max(np.abs(loss_history))
+    loss_history = np.array(np.vstack((loss_history,steptimes)))
+    model.loss_history_ = loss_history
     model.training_time_ = end - start
 
-    if not converged:
-        print("Loss did not converge:", loss_history)
-        raise ConvergenceWarning(
-            f"Model {model.__class__.__name__} has not converged after the maximum number of {model.max_steps} steps."
-        )
+    #removed for perforance profiling
+    #
+    # if not converged:
+    #     print("Loss did not converge:", loss_history)
+    #     raise ConvergenceWarning(
+    #         f"Model {model.__class__.__name__} has not converged after the maximum number of {model.max_steps} steps."
+    #     )
 
     return params
 
