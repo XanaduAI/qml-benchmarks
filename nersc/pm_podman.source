@@ -5,12 +5,15 @@ IMG=balewski/ubu22-pennylane:p3
 CFSH=/global/homes/j/jbowles
 
 echo launch image $IMG
-echo you are launching Podman image ...  remeber to exit
+echo you are launching Podman image ...  remember to exit
+
+pip install ../
+pip install pennylane-catalyst
+pip install scipy==1.11.4
 
 JNB_PORT=' '
 BASE_DIR=/qml-benchmarks   # here git has home
 WORK_DIR=$BASE_DIR/nersc
-
 
 podman-hpc run -it \
    --volume $HOME:/home \
