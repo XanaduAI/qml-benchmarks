@@ -1,2 +1,28 @@
-salloc -q shared_interactive -C cpu -t 4:00:00 --cpus-per-task=32
+salloc -q shared_interactive -C cpu -t 4:00:00 --cpus-per-task=16
 
+JobId=24420449 JobName=interactive
+UserId=jbowles(104993) GroupId=jbowles(104993) MCS_label=N/A
+Priority=73320 Nice=0 Account=m4139 QOS=shared_interactive
+JobState=COMPLETING Reason=NonZeroExitCode Dependency=(null)
+Requeue=0 Restarts=0 BatchFlag=0 Reboot=0 ExitCode=127:0
+RunTime=00:32:07 TimeLimit=04:00:00 TimeMin=N/A
+SubmitTime=2024-04-15T08:02:57 EligibleTime=2024-04-15T08:02:57
+AccrueTime=2024-04-15T08:03:06
+StartTime=2024-04-15T08:03:06 EndTime=2024-04-15T08:35:13 Deadline=N/A
+PreemptEligibleTime=2024-04-15T08:03:06 PreemptTime=None
+SuspendTime=None SecsPreSuspend=0 LastSchedEval=2024-04-15T08:03:06 Scheduler=Main
+Partition=shared_urgent_milan_ss11 AllocNode:Sid=login24:836159
+ReqNodeList=(null) ExcNodeList=(null)
+NodeList=nid004092
+BatchHost=nid004092
+NumNodes=1 NumCPUs=16 NumTasks=1 CPUs/Task=16 ReqB:S:C:T=0:0:*:*
+ReqTRES=cpu=16,mem=30624M,node=1,billing=16
+AllocTRES=cpu=16,mem=30624M,node=1,billing=16
+Socks/Node=* NtasksPerN:B:S:C=0:0:*:* CoreSpec=*
+MinCPUsNode=16 MinMemoryCPU=1914M MinTmpDiskNode=0
+Features=cpu DelayBoot=00:00:00
+OverSubscribe=OK Contiguous=0 Licenses=scratch:1 Network=(null)
+Command=/bin/sh
+WorkDir=/pscratch/sd/j/jbowles/qml-benchmarks/nersc
+AdminComment={"qos":"shared_interactive","arrayTaskId":4294967294,"resizing":0,"originCluster":"perlmutter","batchHost":"nid004092","jobExitCode":32512,"uid":104993,"cluster":"perlmutter","tresRequest":"1=16,2=30624,3=18446744073709551614,4=1,5=16","jobId":24420449,"gresRequest":"cpu=16,mem=30624M,node=1,billing=16","arrayJobId":0,"workingDirectory":"\/pscratch\/sd\/j\/jbowles\/qml-benchmarks\/nersc","licenses":"scratch:1","name":"interactive","partition":"shared_urgent_milan_ss11","packJobId":0,"reboot":0,"priority":73320,"features":"cpu","restartCnt":0,"argv":["\/bin\/sh","-c","srun --interactive --preserve-env --pty $SHELL"],"allocCpus":16,"startTime":1713193386,"packJobOffset":0,"jobAccount":"m4139","nodes":"nid004092","submitTime":1713193377,"timeLimit":240,"jobDerivedExitCode":0,"endTime":1713195313,"allocNodes":1}
+Power=
