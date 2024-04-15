@@ -18,7 +18,7 @@ hyperparams = {**hp_settings['IQPVariationalClassifier'], **{'use_jax':True, 'vm
 
 print(hyperparams)
 
-n_features = 14 #dataset dimension
+n_features = 19 #dataset dimension
 n_trials = 10 #number of trials to average over
 
 X_train,y_train = read_data(f'../../paper/benchmarks/linearly_separable/linearly_separable_{n_features}d_train.csv')

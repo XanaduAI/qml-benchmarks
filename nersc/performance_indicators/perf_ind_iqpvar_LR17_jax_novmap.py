@@ -14,11 +14,11 @@ from qml_benchmarks.hyperparam_search_utils import read_data
 with open('hyperparam_settings.yaml', "r") as file:
     hp_settings = yaml.safe_load(file)
 
-hyperparams = {**hp_settings['IQPVariationalClassifier'], **{'use_jax':True, 'vmap':True, 'max_steps':100}}
+hyperparams = {**hp_settings['IQPVariationalClassifier'], **{'use_jax':True, 'vmap':True, 'max_vmap':1, 'max_steps':100}}
 
 print(hyperparams)
 
-n_features = 14 #dataset dimension
+n_features = 17 #dataset dimension
 n_trials = 10 #number of trials to average over
 
 X_train,y_train = read_data(f'../../paper/benchmarks/linearly_separable/linearly_separable_{n_features}d_train.csv')
@@ -65,7 +65,7 @@ data = [first_train_step, first_train_step_std, consec_train_step, consec_train_
         predict_time_std, hyperparams]
 
 model_name = model.__class__.__name__
-filename =  model_name+f"_linearly_separable_{n_features}d_performance_indicators_JAX.csv"
+filename =  model_name+f"_linearly_separable_{n_features}d_performance_indicators_JAX_novmap.csv"
 header = ['first_train_step', 'first_train_step_std', 'consec_train_step', 'consec_train_step_std', 'predict_time',
           'predict_time_std', 'hyperparameters']
 
