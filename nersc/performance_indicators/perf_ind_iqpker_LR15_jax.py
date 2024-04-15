@@ -8,13 +8,13 @@ import csv
 import os
 import yaml
 
-from qml_benchmarks.models.projected_quantum_kernel import ProjectedQuantumKernel
+from qml_benchmarks.models.iqp_kernel import IQPKernelClassifier
 from qml_benchmarks.hyperparam_search_utils import read_data
 
 with open('hyperparam_settings.yaml', "r") as file:
     hp_settings = yaml.safe_load(file)
 
-hyperparams = {**hp_settings['ProjectedQuantumKernel'], **{'use_jax':True, 'vmap':True}}
+hyperparams = {**hp_settings['IQPKernelClassifier'], **{'use_jax':True, 'vmap':True}}
 
 print(hyperparams)
 
@@ -23,7 +23,7 @@ n_features = 15 #dataset dimension
 X_train,y_train = read_data(f'../../paper/benchmarks/linearly_separable/linearly_separable_{n_features}d_train.csv')
 X_test,y_test = read_data(f'../../paper/benchmarks/linearly_separable/linearly_separable_{n_features}d_train.csv')
 
-model = ProjectedQuantumKernel(**hyperparams)
+model = IQPKernelClassifier(**hyperparams)
 model.fit(X_train[:50], y_train[:50])
 
 #kernel construction time
