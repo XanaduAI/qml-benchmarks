@@ -1,2 +1,0 @@
-first_train_step,first_train_step_std,consec_train_step,consec_train_step_std,predict_time,predict_time_std,hyperparameters
-3.2171609163284303,0.10161538880525899,0.0010687878637602836,3.437768200541456e-05,1.3052996158599854,0.05948661322433076,"{'learning_rate': 0.01, 'n_layers': 15, 'repeats': 10, 'use_jax': True, 'vmap': True, 'max_steps': 100}"
