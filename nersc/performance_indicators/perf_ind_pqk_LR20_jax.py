@@ -8,17 +8,17 @@ import csv
 import os
 import yaml
 
-from qml_benchmarks.models.iqp_variational import IQPVariationalClassifier
+from qml_benchmarks.models.projected_quantum_kernel import ProjectedQuantumKernel
 from qml_benchmarks.hyperparam_search_utils import read_data
 
 with open('hyperparam_settings.yaml', "r") as file:
     hp_settings = yaml.safe_load(file)
 
-hyperparams = {**hp_settings['IQPVariationalClassifier'], **{'use_jax':True, 'vmap':True, 'max_steps':100}}
+hyperparams = {**hp_settings['ProjectedQuantumKernel'], **{'use_jax':True, 'vmap':True, 'max_steps':100}}
 
 print(hyperparams)
 
-n_features = 18 #dataset dimension
+n_features = 17 #dataset dimension
 n_trials = 10 #number of trials to average over
 
 X_train,y_train = read_data(f'../../paper/benchmarks/linearly_separable/linearly_separable_{n_features}d_train.csv')
@@ -31,7 +31,7 @@ predict_times = []
 for trial in range(n_trials):
     jax.clear_caches()
 
-    model = IQPVariationalClassifier(**hyperparams)
+    model = QuantumMetricLearner(**hyperparams)
     model.fit(X_train, y_train)
 
     #get step times from loss history data

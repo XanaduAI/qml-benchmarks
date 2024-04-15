@@ -14,12 +14,12 @@ from qml_benchmarks.hyperparam_search_utils import read_data
 with open('hyperparam_settings.yaml', "r") as file:
     hp_settings = yaml.safe_load(file)
 
-hyperparams = {**hp_settings['IQPVariationalClassifier'], **{'use_jax':True, 'vmap':True, 'max_steps':100}}
+hyperparams = {**hp_settings['IQPVariationalClassifier'], **{'use_jax':True, 'vmap':True, 'max_steps':10}}
 
 print(hyperparams)
 
 n_features = 17 #dataset dimension
-n_trials = 10 #number of trials to average over
+n_trials = 5 #number of trials to average over
 
 X_train,y_train = read_data(f'../../paper/benchmarks/linearly_separable/linearly_separable_{n_features}d_train.csv')
 X_test,y_test = read_data(f'../../paper/benchmarks/linearly_separable/linearly_separable_{n_features}d_train.csv')
@@ -45,7 +45,7 @@ for trial in range(n_trials):
     av_consec_train_steps.append(float(jnp.mean(step_times[1:])))
     #prediction time
     time0 = time.time()
-    model.predict(X_test)
+    model.predict(X_test[:10])
     predict_times.append(time.time() - time0)
 
 

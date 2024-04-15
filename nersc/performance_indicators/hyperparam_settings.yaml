@@ -2,3 +2,15 @@ IQPVariationalClassifier:
   learning_rate: 0.01
   n_layers: 15
   repeats: 10
+
+QuantumMetricLearner:
+  learning_rate: 0.01
+  n_layers: 4
+  batch_size: 16
+
+ProjectedQuantumKernel:
+  trotter_steps: 5
+
+IQPKernelClassifier:
+  repeats: 10
+
