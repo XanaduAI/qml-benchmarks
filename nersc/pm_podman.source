@@ -7,10 +7,6 @@ CFSH=/global/homes/j/jbowles
 echo launch image $IMG
 echo you are launching Podman image ...  remember to exit
 
-pip install ../
-pip install pennylane-catalyst
-pip install scipy==1.11.4
-
 JNB_PORT=' '
 BASE_DIR=/qml-benchmarks   # here git has home
 WORK_DIR=$BASE_DIR/nersc
