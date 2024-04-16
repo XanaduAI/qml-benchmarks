@@ -1,0 +1,2 @@
+construct_kernel_time,training_time,predict_time,hyperparameters
+1.1291069984436035,1.1299769878387451,1.092557668685913,"{'repeats': 10, 'use_jax': True, 'vmap': True, 'jit': True}"

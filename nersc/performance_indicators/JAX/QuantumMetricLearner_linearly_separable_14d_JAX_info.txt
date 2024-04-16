@@ -1,4 +1,0 @@
-salloc -q shared_interactive -C cpu -t 4:00:00 --cpus-per-task=32
-
-
-
