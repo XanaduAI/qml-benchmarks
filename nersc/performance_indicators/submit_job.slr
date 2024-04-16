@@ -4,7 +4,7 @@
 #SBATCH -q shared
 #SBATCH -J perf_ind_iqpvar_15
 # SBATCH --account=jbowles
-#SBATCH -t 12:00:00
+#SBATCH -t 1:00:00
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=16
 #SBATCH --output out/%j.log
