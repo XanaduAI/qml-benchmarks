@@ -19,7 +19,7 @@ use_jax = True
 vmap = True
 jit = True
 perf_ind_name = 'JAX'  #a name for the performance indicator used for naming files
-n_features = 3 #dataset dimension
+n_features = 15 #dataset dimension
 n_train = 50 #number of data points to fit model
 n_test = 50 #number of datapoints for prediction
 
