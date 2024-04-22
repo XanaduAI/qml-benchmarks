@@ -2,11 +2,11 @@
 #SBATCH -N 1
 #SBATCH -C cpu
 #SBATCH -q shared
-#SBATCH -J perf_ind_iqpvar_15
+#SBATCH -J perf_ind_iqpvar_17
 # SBATCH --account=jbowles
 #SBATCH -t 24:00:00
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=6
+#SBATCH --cpus-per-task=10
 #SBATCH --output out/%j.log
 #SBATCH  --licenses=scratch
 

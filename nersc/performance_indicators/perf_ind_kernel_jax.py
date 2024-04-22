@@ -14,10 +14,14 @@ from qml_benchmarks.hyperparam_search_utils import read_data
 # settings for the performance indicator.
 # You only need to change this to make a different performance indicator
 
+#define the model
 from qml_benchmarks.models.iqp_kernel import IQPKernelClassifier as Model
+
+#implementation attributes of model
 use_jax = True
 vmap = True
 jit = True
+
 perf_ind_name = 'JAX'  #a name for the performance indicator used for naming files
 n_features = 15 #dataset dimension
 
