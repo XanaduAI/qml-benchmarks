@@ -20,8 +20,6 @@ vmap = True
 jit = True
 perf_ind_name = 'JAX'  #a name for the performance indicator used for naming files
 n_features = 15 #dataset dimension
-n_train = 50 #number of data points to fit model
-n_test = 50 #number of datapoints for prediction
 
 #################################
 
@@ -38,7 +36,7 @@ X_train,y_train = read_data(f'../../paper/benchmarks/linearly_separable/linearly
 X_test,y_test = read_data(f'../../paper/benchmarks/linearly_separable/linearly_separable_{n_features}d_train.csv')
 
 model = Model(**hyperparams)
-model.fit(X_train[:n_train], y_train[:n_train])
+model.fit(X_train, y_train)
 
 #kernel construction time
 construct_kernel_time = model.construct_kernel_time_
@@ -46,7 +44,7 @@ construct_kernel_time = model.construct_kernel_time_
 training_time = model.training_time_
 #prediction time
 time0 = time.time()
-model.predict(X_test[:n_test])
+model.predict(X_test)
 predict_time = time.time() - time0
 
 

@@ -60,7 +60,7 @@ for trial in range(n_trials):
     av_consec_train_steps.append(float(jnp.mean(step_times[1:])))
     #prediction time
     time0 = time.time()
-    model.predict(X_test[:10])
+    model.predict(X_test)
     predict_times.append(time.time() - time0)
 
 
