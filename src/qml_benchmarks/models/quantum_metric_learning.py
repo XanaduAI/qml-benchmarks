@@ -50,6 +50,8 @@ class QuantumMetricLearner(BaseEstimator, ClassifierMixin):
         max_steps=50000,
         learning_rate=0.01,
         batch_size=32,
+        use_jax = True,
+        vmap = True,
         max_vmap=4,
         jit=True,
         random_state=42,
@@ -100,6 +102,8 @@ class QuantumMetricLearner(BaseEstimator, ClassifierMixin):
         self.learning_rate = learning_rate
         self.batch_size = batch_size
         self.jit = jit
+        self.use_jax = use_jax
+        self.vmap = vmap
         self.dev_type = dev_type
         self.qnode_kwargs = qnode_kwargs
         self.scaling = scaling
