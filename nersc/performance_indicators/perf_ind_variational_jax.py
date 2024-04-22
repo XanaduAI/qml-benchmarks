@@ -15,7 +15,7 @@ from qml_benchmarks.hyperparam_search_utils import read_data
 # You only need to change this to make a different performance indicator
 
 #define model
-from qml_benchmarks.models.iqp_variational import IQPVariationalClassifier as Model
+from qml_benchmarks.models.quantum_metric_learning import QuantumMetricLearner as Model
 
 #implementation attributes of model
 use_jax = True
@@ -24,7 +24,7 @@ jit = True
 
 max_steps = 100 #the number of gradient descent steps to use to estimate the step time
 perf_ind_name = 'JAX'  #a name for the performance indicator used for naming files
-n_features = 20 #dataset dimension
+n_features = 13 #dataset dimension
 n_trials = 5 #number of trials to average over
 
 #################################
