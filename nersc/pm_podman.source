@@ -2,7 +2,7 @@
 #  salloc -q interactive -C cpu -t 4:00:00 -A nstaff 
 
 IMG=balewski/ubu22-pennylane:p3
-CFSH=/global/homes/j/jbowles
+CFSH=/global/cfs/cdirs/m4139/
 
 echo launch image $IMG
 echo you are launching Podman image ...  remember to exit
