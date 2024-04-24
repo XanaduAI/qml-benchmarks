@@ -2,14 +2,14 @@
 #  salloc -q interactive -C cpu -t 4:00:00 -A nstaff 
 
 IMG=balewski/ubu22-pennylane:p3
-CFSH=/global/cfs/cdirs/m4139/
+CFSH=/global/cfs/cdirs/m4139
 
 echo launch image $IMG
 echo you are launching Podman image ...  remember to exit
 
 JNB_PORT=' '
-BASE_DIR=/qml-benchmarks   # here git has home
-WORK_DIR=$BASE_DIR/nersc
+BASE_DIR=qml-benchmarks   # here git has home
+WORK_DIR=/$BASE_DIR/nersc
 
 podman-hpc run -it \
    --volume $HOME:/home \
