@@ -4,6 +4,8 @@
 IMG=balewski/ubu22-pennylane:p3
 CFSH=/global/cfs/cdirs/m4139
 
+# export PODMANHPC_ADDITIONAL_STORES=/global/cfs/cdirs/nstaff/balewski/podman_common
+
 echo launch image $IMG
 echo you are launching Podman image ...  remember to exit
 

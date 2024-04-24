@@ -23,7 +23,7 @@ vmap = True
 jit = True
 
 perf_ind_name = 'JAX'  #a name for the performance indicator used for naming files
-n_features = 15 #dataset dimension
+n_features = 16 #dataset dimension
 
 #################################
 

@@ -10,8 +10,10 @@
 #SBATCH --output out/%j.log
 #SBATCH  --licenses=scratch
 
+
+
 source ../pm_podman.source
-bash ../installs.sh
+bash installs.sh
 
-time srun -n 1  python3 perf_ind_variational_jax.py
 
+time srun -n 1  python3 performance_indicators/perf_ind_variational_jax.py
