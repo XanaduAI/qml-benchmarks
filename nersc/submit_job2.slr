@@ -1,10 +1,9 @@
 #!/bin/bash
 #SBATCH -N 1
 #SBATCH -C cpu
-# SBATCH -q shared -t 01:00:00
-#SBATCH -q debug -t 5:00  # charged for full node
+#SBATCH -q shared -t 01:00:00
+# SBATCH -q debug -t 5:00  # charged for full node
 #SBATCH -J perf_ind_iqp15
-# SBATCH --account=jbowles
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=6
 #SBATCH --output out1/%j.log
