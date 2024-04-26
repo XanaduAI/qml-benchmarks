@@ -1,0 +1,51 @@
+FROM ubuntu:22.04
+
+# time podman-hpc build -f Dockerfile.ubu22-PennyLane -t balewski/ubu22-pennylane:p5   .
+#>>> real	6m47.959s
+
+# podman commit  -a "Jan Balewski"  c3d48cf15876XXX  balewski/XXXkit-qml:p2ch
+# on laptop:
+#  podman run -it balewski/ubu22-pennylane:p0 bash
+# time python3 -c 'import pennylane'
+
+# is needed by  tzdada which sets sth for one of libs in section 2
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=America/Los_Angeles
+
+RUN echo 1a-AAAAAAAAAAAAAAAAAAAAAAAAAAAAA  OS update   && \
+    apt-get update && \
+    apt-get install -y  locales autoconf automake gcc g++ make vim wget  ssh  openssh-server sudo   git emacs aptitude build-essential xterm python3-pip   python3-tk python3-scipy python3-dev iputils-ping net-tools screen feh hdf5-tools python3-bitstring mlocate graphviz  tzdata x11-apps && \
+    apt-get clean all
+
+# Forbid installing qiskit-terra  for qiskit 1.0 
+RUN echo 2b-AAAAAAAAAAAAAAAAAAAAAAAAAAAAA   Qiskit 1.0 libs  && \
+    pip3 install -c https://qisk.it/1-0-constraints qiskit[visualization] qiskit-ibm-runtime qiskit-machine-learning qiskit_ibm_experiment qiskit-aer
+
+
+RUN echo 2c-AAAAAAAAAAAAAAAAAAAAAAAAAAAAA   ML+QML  libs  && \
+    pip3 install scikit-learn pandas seaborn[stats]  networkx[default] optuna
+
+
+RUN echo 2d-AAAAAAAAAAAAAAAAAAAAAAAAAAAAA   python libs  && \
+    pip3 install --upgrade pip && \
+    pip3 install matplotlib h5py ruamel.yaml  scipy    jupyter notebook  bitstring
+
+# notes: python3-tk instals TK for matplotlib to display graphic
+RUN echo 2e-AAAAAAAAAAAAAAAAAAAAAAAAAAAAA   python libs  && \
+    pip3 install  --upgrade Pillow
+
+
+# based on  https://pennylane.ai/install/
+# based on  https://pytorch.org/get-started/locally/
+
+RUN echo 3a-AAAAAAAAAAAAAAAAAAAAAAAAAAAAA   pennylane  && \
+    pip3 install pennylane --upgrade && \
+    pip3 install pennylane-lightning pennylane-lightning[gpu] pennylane-sf pennylane-qiskit pennylane-cirq pennylane-catalyst scipy==1.11.4  && \
+    pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+RUN echo 3b-AAAAAAAAAAAAAAAAAAAAAAAAAAAAA   JAX  && \
+    pip3 install -U "jax[cpu]" && \
+    pip3 install jaxopt optax
+
+
+
