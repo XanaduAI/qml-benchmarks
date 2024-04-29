@@ -15,9 +15,10 @@ echo 'S:start'
 # .... container
 # salloc -q interactive -C cpu -t 4:00:00 -A nstaff
 
-IMG=balewski/ubu22-pennylane:p5
+IMG=jbowles/ubu22-pennylane:p5
 echo use image $IMG
-POD_PUB=/dvs_ro/cfs/cdirs/nstaff/balewski/podman_common/  
+POD_PUB=/global/cfs/cdirs/m4139/qml-benchmarks/nersc/podman/
+# POD_PUB=/dvs_ro/cfs/cdirs/nstaff/balewski/podman_common/  
 export PODMANHPC_ADDITIONAL_STORES=$POD_PUB
 
 #.... output sandbox 
