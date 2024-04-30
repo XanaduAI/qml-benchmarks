@@ -180,4 +180,9 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 old/
+.bash_history
+.local/
+.viminfo
+hyperplanes_diff/
+linearly_separable/
 

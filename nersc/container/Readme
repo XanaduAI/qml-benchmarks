@@ -22,8 +22,10 @@ Laptop:
 Perlmutter
    podman-hpc build -f Dockerfile.ubu22-PennyLane -t balewski/ubu22-pennylane:p5   .
    POD_PUB=/cfs/cdirs/nstaff/balewski/podman_common/
-   podman-hpc --squash-dir /global/$POD_PUB migrate  balewski/ubu22-pennylane:p5 
-   Note,  the instruction above is for user:balewski whohas access to CFS/nstaff - change the strings as needed
+   podman-hpc --squash-dir /global/$POD_PUB migrate  balewski/ubu22-pennylane:p5
+   chmod -R a+rx  /global/$POD_PUB   # to allow anyone to use this image
+   
+   Note,  the instruction above is for user:balewski who has access to CFS/nstaff - change the strings as needed
 
 
 
@@ -72,9 +74,28 @@ ssh CFS  (to your area )
 sbatch batchPodman.slr
 
 
-B.4  - - - - - -  advanced :  install project spceciffic software, one time
-NOT possible now - working on it
+B.4  - - - - - -  advanced :  install project spceciffic software, NOT recommended but possible
 
+ssh pm
+
+IMG=jbowles/ubu22-pennylane:p5
+POD_PUB=/dvs_ro/cfs/cdirs/m4139/qml-benchmarks/nersc/podman/
+export PODMANHPC_ADDITIONAL_STORES=$POD_PUB
+CFSH=$SCRATCH/pennylane_wrk  # for Jan
+#CFSH=/global/cfs/cdirs/m4139  # for Joseph
+podman-hpc run -it --volume  $CFSH/qml-benchmarks:/root --workdir /root  $IMG  bash
+pip3 install    --user .       # inside image, create private ./local
+
+exit
+
+Testing:
+podman-hpc run -it  …
+python3 -u -c "import qml_benchmarks "
+exit
+
+AND when lanuching podman image you must have this volume mount, on the top of all other volumes you need:
+
+ --volume  $CFSH/qml-benchmarks:/root 
 
 B.5  - - - - - -  advanced : jupiter notebook on the laptop powered by Podman PennyLane image running on PM - - - - - - - 
   Easy to do 
