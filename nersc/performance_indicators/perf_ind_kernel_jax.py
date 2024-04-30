@@ -10,6 +10,9 @@ import yaml
 import subprocess
 from qml_benchmarks.hyperparam_search_utils import read_data
 
+print(os.getcwd())
+os.chdir('performance_indicators')
+
 #################################
 # settings for the performance indicator.
 # You only need to change this to make a different performance indicator
@@ -23,7 +26,7 @@ vmap = True
 jit = True
 
 perf_ind_name = 'JAX'  #a name for the performance indicator used for naming files
-n_features = 16 #dataset dimension
+n_features = 2  #dataset dimension
 
 #################################
 

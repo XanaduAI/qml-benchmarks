@@ -10,12 +10,15 @@ import yaml
 import subprocess
 from qml_benchmarks.hyperparam_search_utils import read_data
 
+print(os.getcwd())
+os.chdir('performance_indicators')
+
 #################################
 # settings for the performance indicator.
 # You only need to change this to make a different performance indicator
 
 #define model
-from qml_benchmarks.models.iqp_variational import IQPVariationalClassifier as Model
+from qml_benchmarks.models.quantum_metric_learning import QuantumMetricLearner as Model
 
 #implementation attributes of model
 use_jax = True
