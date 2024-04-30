@@ -324,11 +324,11 @@ class ProjectedQuantumKernel(BaseEstimator, ClassifierMixin):
         self.params_ = {"X_train": X}
         start = time.time()
         kernel_matrix = self.precompute_kernel(X, X)
+        self.construct_kernel_time_ = time.time() - start
 
         self.svm.C = self.C
         self.svm.fit(kernel_matrix, y)
-        end = time.time()
-        self.training_time_ = end - start
+        self.training_time_ = time.time() - start
 
         return self
 

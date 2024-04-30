@@ -221,15 +221,15 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
         X = self.transform(X)
 
         self.params_ = {"x_train": X}
-        kernel_matrix = self.precompute_kernel(X, X)
-
         start = time.time()
+        kernel_matrix = self.precompute_kernel(X, X)
+        self.construct_kernel_time_ = time.time() - start
+
         # we are updating this value here, in case it was
         # changed after initialising the model
         self.svm.C = self.C
         self.svm.fit(kernel_matrix, y)
-        end = time.time()
-        self.training_time_ = end - start
+        self.training_time_ = time.time() - start
 
         return self
 
