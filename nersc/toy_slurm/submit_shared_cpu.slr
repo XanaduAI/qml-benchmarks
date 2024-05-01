@@ -1,0 +1,35 @@
+#!/bin/bash
+#SBATCH -N 1
+#SBATCH -C cpu
+#SBATCH -q shared
+#-SBATCH -q debug  # charged for full node
+#SBATCH -J test_cpu12
+#SBATCH --account=nstaff
+#SBATCH -t 00:08:00
+#SBATCH --ntasks-per-node=2
+#SBATCH --cpus-per-task=4
+#-SBATCH --mem=25GB    # optional, use only if needed
+#SBATCH --output out/%j.log
+#SBATCH  --licenses=scratch
+# - - - E N D    O F    SLURM    C O M M A N D S
+
+nprocspn=${SLURM_NTASKS_PER_NODE}
+#nprocspn=1  # special case for partial use of full node
+
+N=${SLURM_NNODES}
+G=$[ $N * $nprocspn ]
+jobId=${SLURM_JOBID}
+echo S:  G=$G  N=$N
+
+OUT_DIR=$SCRATCH/penny_tmp/$jobId
+mkdir -p $OUT_DIR
+
+CFSH=/global/cfs/cdirs/mpccc/balewski/pennylane_nesap/toy_slurm
+
+#  .... starting job proper
+module load pytorch
+time srun -n $G  python ./run_cpu_task.py --input $CFSH/input.json --output $OUT_DIR/cpu_output.txt
+
+echo S:train-done
+date
+

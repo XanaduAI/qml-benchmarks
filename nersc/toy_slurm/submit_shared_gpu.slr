@@ -1,0 +1,40 @@
+#!/bin/bash
+#SBATCH -N 1
+#SBATCH -C gpu
+#SBATCH -q shared
+#-SBATCH -q debug  # charged for full node
+#SBATCH -J test_gpu12
+#SBATCH --account=nstaff
+#SBATCH -t 00:08:00
+#SBATCH --gpus 2  # total
+#SBATCH --ntasks-per-node=2  # must match # GPUs/node if full node is used
+#SBATCH --gpus-per-task=1  # assures a different GPU is given to each task
+#SBATCH --output out/%j.log
+#SBATCH  --licenses=scratch
+# - - - E N D    O F    SLURM    C O M M A N D S
+
+#env|grpe SLURM
+
+nprocspn=${SLURM_NTASKS}
+#nprocspn=1  # special case for partial use of full node
+
+N=${SLURM_NNODES}
+G=$[ $N * $nprocspn ]
+jobId=${SLURM_JOBID}
+echo S:  G=$G  N=$N
+
+OUT_DIR=$SCRATCH/penny_tmp/$jobId
+mkdir -p $OUT_DIR
+
+CFSH=/global/cfs/cdirs/mpccc/balewski/pennylane_nesap/toy_slurm
+
+echo "S: start nvidia-smi"
+nvidia-smi
+module load python
+
+#  .... starting job proper
+time srun -n $G --gpus-per-task=1  python ./run_gpu_task.py --input $CFSH/input.json --output $OUT_DIR/gpu_output.txt
+
+echo S:train-done
+date
+

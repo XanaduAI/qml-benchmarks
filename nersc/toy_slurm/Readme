@@ -1,0 +1,33 @@
+Example of Slurm scripts using fraction of a node (aka shared queue)
+
+Jan's tricks:
+* write Slurm output to out/<JobId>.log , merge stdout+sderr
+* disable selcted Slurm command with '-', e.g.: this is how to change queue by just moving '-'
+#SBATCH -q shared
+#-SBATCH -q debug
+* run task under time to see the burden on the system
+* not hardcode paths, use $SCRATCH
+* $ sqs  command at NERSC is your friend
+* alasy ask for 30% more time , 30% more CPUs, 5GB more RAM than you think you need
+
+Preparation:
+* alwasy start Slurm job from CFS (Community File System) so the Slurm-output is written here
+cd /global/cfs/cdirs/mXXX/yyy
+mkdir out
+
+= = = = = =   CPU shared node = = = = =
+Inspect: submit_shared_cpu.slr
+- reads config from CFS , it controlls how long code runs
+- writes output to SCRATCH to sub-dir whos name is jobId
+- python task is rank-aware and each runk writes different output
+
+$ sbatch submit_shared_cpu.slr
+
+$ scontrol show job <JobID>
+
+
+= = = = = =   GPU shared  node = = = = =
+
+$ sbatch submit_shared_gpu.slr
+- similar workflow, but now computation is done on GPU
+- 
