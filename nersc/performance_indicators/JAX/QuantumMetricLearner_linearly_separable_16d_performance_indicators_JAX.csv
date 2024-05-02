@@ -1,0 +1,2 @@
+first_train_step,first_train_step_std,consec_train_step,consec_train_step_std,predict_time,predict_time_std,hyperparameters
+156.70789346694946,10.264342281303652,18.11830727981799,0.7520945854665012,846.8818587303161,21.645421239376127,"{'n_layers': 4, 'batch_size': 16, 'use_jax': True, 'vmap': True, 'max_steps': 100, 'jit': True}"
