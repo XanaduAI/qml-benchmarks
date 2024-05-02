@@ -11,7 +11,7 @@ import subprocess
 from qml_benchmarks.hyperparam_search_utils import read_data
 
 print(os.getcwd())
-os.chdir('performance_indicators')
+# os.chdir('nersc/performance_indicators')
 
 #################################
 # settings for the performance indicator.
@@ -41,8 +41,8 @@ with open('hyperparam_settings.yaml', "r") as file:
 hyperparams = {**hp_settings[model_name], **{'use_jax':use_jax, 'vmap':vmap, 'max_steps':max_steps, 'jit': jit}}
 print(hyperparams)
 
-X_train,y_train = read_data(f'../../paper/benchmarks/linearly_separable/linearly_separable_{n_features}d_train.csv')
-X_test,y_test = read_data(f'../../paper/benchmarks/linearly_separable/linearly_separable_{n_features}d_train.csv')
+X_train,y_train = read_data(f'linearly_separable/linearly_separable_{n_features}d_train.csv')
+X_test,y_test = read_data(f'linearly_separable/linearly_separable_{n_features}d_train.csv')
 
 first_train_steps = []
 av_consec_train_steps = []
@@ -111,4 +111,3 @@ with open(perf_ind_name+'/'+packages_filename, 'w') as file:
 # make an empty text file to store the scontrol data
 with open(perf_ind_name+'/'+scontrol_filename, 'w') as file:
     pass
-

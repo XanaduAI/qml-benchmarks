@@ -14,7 +14,7 @@ import argparse
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("-v","--verbosity",type=int,choices=[0, 1, 2,3,4],  help="increase output verbosity", default=1, dest='verb')
-    parser.add_argument("--inputPath",default='../linearly_separable',help='input data location')
+    parser.add_argument("--inputPath",default='linearly_separable/',help='input data location')
     parser.add_argument('-n','--numFeatures',type=int,default=2, help="dataset dimension ")
 
     args = parser.parse_args()
@@ -33,8 +33,8 @@ def get_parser():
 if __name__=="__main__":
     args=get_parser()
 
-    print(os.getcwd())
-    os.chdir('performance_indicators')
+    #print(os.getcwd())
+    #os.chdir('performance_indicators')
 
     #################################
     # settings for the performance indicator.
