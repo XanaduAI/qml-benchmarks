@@ -19,7 +19,7 @@ To run a performance indicator you need to edit a number of things in the file `
 
   `CMD=" python3 -u  performance_indicators/XXX.py --numFeatures $numFeatures --inputPath performance_indicators/linearly_separable/ "`
 
-  where `XXX` is either `perf_ind_kernel.py` or `perf_ind_variational.py`
+  where `XXX` is either `perf_ind_kernel` or `perf_ind_variational`
 
 
 - Decide the maximum job time (format HH:MM:SS):
@@ -38,14 +38,14 @@ To launch a job run
 This will add the job to the queue; when finished the results are stored in `performance_indicators/perf_ind_name`.
 Add the jobID to the google sheet for reference. 
 
-## determinining the number of CPUs
+## Determinining the number of CPUs
 To avoid wasting resources, you should first determine how many CPUs are required. To have an idea of 
 CPU usage, launch a job and ssh to the compute node, and run top to see the CPU usage (then kill the job). 
 Repeat the process until a reasonable number of CPUs is found (i.e. most are in use). 
 
 Add this choice to the `CPUs` row of the google sheet. 
 
-## recording memory and CPU usage
+## Recording memory and CPU usage
 Once the job has finished, run 
 
 `seff JOBID`
