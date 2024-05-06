@@ -33,9 +33,6 @@ def get_parser():
 if __name__=="__main__":
     args=get_parser()
 
-    #print(os.getcwd())
-    #os.chdir('performance_indicators')
-
     #################################
     # settings for the performance indicator.
     # You only need to change this to make a different performance indicator
@@ -108,7 +105,4 @@ if __name__=="__main__":
     with open('performance_indicators/'+perf_ind_name+'/'+packages_filename, 'w') as file:
         file.write(output)
 
-    # make an empty text file to store the scontrol data
-    with open('performance_indicators/'+perf_ind_name+'/'+scontrol_filename, 'w') as file:
-        pass
     print('M:done')

@@ -55,7 +55,7 @@ cd $outPath
 
 G=1
 echo 'S:ready to run '; pwd
-srun -n $G  ./wrap_podman2.sh $IMG " $CMD "  $outPath  $CFSH $BASE_DIR $WORK_DIR
+srun -n $G  ./wrap_podman.sh $IMG " $CMD "  $outPath  $CFSH $BASE_DIR $WORK_DIR
 
 sleep 1
 echo 'S:end '; date
