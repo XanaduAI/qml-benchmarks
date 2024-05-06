@@ -42,7 +42,7 @@ BASE_DIR=/qml-benchmarks   # here git has home
 WORK_DIR=$BASE_DIR/nersc
 
 #... the task to be executed
-CMD=" python3 -u  performance_indicators/perf_ind_kernel_jax.py --numFeatures $numFeatures --inputPath performance_indicators/linearly_separable/ "
+CMD=" python3 -u  performance_indicators/perf_ind_kernel.py --numFeatures $numFeatures --inputPath performance_indicators/linearly_separable/ "
 #CMD=" python3 -u -c \"import pennylane \"; echo done1  "
 #CMD=" python3 -u -c \"import qml_benchmarks \";  echo done2 host  "
 
