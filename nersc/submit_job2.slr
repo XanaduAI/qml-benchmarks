@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -N 1
 #SBATCH -C cpu
-# SBATCH -q shared -t 10:00:00
-#SBATCH -q debug -t 5:00  # charged for full node
+#SBATCH -q shared -t 1:00:00
+# SBATCH -q debug -t 5:00  # charged for full node
 #SBATCH -J perf_ind_qkernel2
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=6
@@ -18,12 +18,12 @@ numFeatures=3
 # .... container
 # salloc -q interactive -C cpu -t 4:00:00 -A nstaff
 
-IMG=balewski/ubu22-pennylane:p5  # old
-#IMG=jbowles/ubu22-pennylane:p5
+#IMG=balewski/ubu22-pennylane:p5  # old
+IMG=jbowles/ubu22-pennylane:p5
 echo use image $IMG
 
-#POD_PUB=//dvs_ro/cfs/cdirs/m4139/qml-benchmarks/nersc/podman/
-POD_PUB=/dvs_ro/cfs/cdirs/nstaff/balewski/podman_common/  #old
+POD_PUB=//dvs_ro/cfs/cdirs/m4139/qml-benchmarks/nersc/podman/
+#POD_PUB=/dvs_ro/cfs/cdirs/nstaff/balewski/podman_common/  #old
 export PODMANHPC_ADDITIONAL_STORES=$POD_PUB
 
 #.... output sandbox 
@@ -36,13 +36,13 @@ cp -rp performance_indicators *.slr *.sh   $outPath
 
 
 #... location of input on CSF
-#CFSH=/global/cfs/cdirs/m4139  # for Joseph
-CFSH=/pscratch/sd/b/balewski/pennylane_wrk  # for Jan
+CFSH=/global/cfs/cdirs/m4139  # for Joseph
+# CFSH=/pscratch/sd/b/balewski/pennylane_wrk  # for Jan
 BASE_DIR=/qml-benchmarks   # here git has home
 WORK_DIR=$BASE_DIR/nersc
 
 #... the task to be executed
-CMD=" python3 -u  performance_indicators/perf_ind_kernel_jax.py --numFeatures $numFeatures --inputPath ../../../linearly_separable "
+CMD=" python3 -u  performance_indicators/perf_ind_kernel_jax.py --numFeatures $numFeatures --inputPath performance_indicators/linearly_separable/ "
 #CMD=" python3 -u -c \"import pennylane \"; echo done1  "
 #CMD=" python3 -u -c \"import qml_benchmarks \";  echo done2 host  "
 

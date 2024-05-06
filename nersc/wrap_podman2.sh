@@ -18,7 +18,7 @@ echo 'W:start podman'
 podman-hpc run -it \
     --volume $CFSH/$BASE_DIR:/root \
     --volume $CFSH/$BASE_DIR:$BASE_DIR \
-    --volume $CFSH/$BASE_DIR/linearly_separable:/linearly_separable \
+    --volume $CFSH/$BASE_DIR/nersc/performance_indicators/linearly_separable:/linearly_separable \
     --volume $CFSH/$WORK_DIR:$WORK_DIR \
     -e HDF5_USE_FILE_LOCKING='FALSE' \
     --workdir $WORK_DIR \

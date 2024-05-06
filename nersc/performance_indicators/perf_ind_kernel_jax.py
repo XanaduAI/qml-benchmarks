@@ -56,7 +56,7 @@ if __name__=="__main__":
     model_name = Model().__class__.__name__
 
     # get the 'worst case' hyperparameter settings for the model (those that require the most resources)
-    with open('hyperparam_settings.yaml', "r") as file:
+    with open('performance_indicators/hyperparam_settings.yaml', "r") as file:
         hp_settings = yaml.safe_load(file)
 
     hyperparams = {**hp_settings[model_name], **{'use_jax':use_jax, 'vmap':vmap, 'jit': jit}}
@@ -97,7 +97,7 @@ if __name__=="__main__":
         os.mkdir(perf_ind_name)
 
     #write perf indicator data
-    with open(perf_ind_name+'/'+filename, mode="w", newline="") as file:
+    with open('performance_indicators/'+perf_ind_name+'/'+filename, mode="w", newline="") as file:
         writer = csv.writer(file)
         writer.writerow(header)
         for row in [data]:
@@ -105,10 +105,10 @@ if __name__=="__main__":
 
     # get package list and write to file
     output = subprocess.check_output(['pip', 'list']).decode('utf-8')
-    with open(perf_ind_name+'/'+packages_filename, 'w') as file:
+    with open('performance_indicators/'+perf_ind_name+'/'+packages_filename, 'w') as file:
         file.write(output)
 
     # make an empty text file to store the scontrol data
-    with open(perf_ind_name+'/'+scontrol_filename, 'w') as file:
+    with open('performance_indicators/'+perf_ind_name+'/'+scontrol_filename, 'w') as file:
         pass
     print('M:done')
