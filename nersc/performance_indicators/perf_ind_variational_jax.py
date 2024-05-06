@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     max_steps = 100 #the number of gradient descent steps to use to estimate the step time
     perf_ind_name = 'JAX'  #a name for the performance indicator used for naming files
-    n_features = 2 #dataset dimension
+    n_features = args.numFeatures #dataset dimension
     n_trials = 5 #number of trials to average over
 
     #################################
