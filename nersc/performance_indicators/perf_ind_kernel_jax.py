@@ -33,8 +33,7 @@ def get_parser():
 if __name__=="__main__":
     args=get_parser()
 
-    #################################
-    # settings for the performance indicator.
+    ####### SETTINGS #######################
     # You only need to change this to make a different performance indicator
 
     #define the model
@@ -44,19 +43,20 @@ if __name__=="__main__":
     use_jax = True
     vmap = True
     jit = True
+    model_settings = {'use_jax': use_jax, 'vmap': vmap, 'jit': jit}
 
     perf_ind_name = 'JAX'  #a name for the performance indicator used for naming files
-    n_features = args.numFeatures  #dataset dimension
 
     #################################
 
+    n_features = args.numFeatures  # dataset dimension
     model_name = Model().__class__.__name__
 
     # get the 'worst case' hyperparameter settings for the model (those that require the most resources)
     with open('performance_indicators/hyperparam_settings.yaml', "r") as file:
         hp_settings = yaml.safe_load(file)
 
-    hyperparams = {**hp_settings[model_name], **{'use_jax':use_jax, 'vmap':vmap, 'jit': jit}}
+    hyperparams = {**hp_settings[model_name], **model_settings}
     print(hyperparams)
     assert os.path.exists(args.inputPath)
     #inpF1=f'../../paper/benchmarks/linearly_separable/linearly_separable_{n_features}d_train.csv'
