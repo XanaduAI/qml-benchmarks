@@ -66,8 +66,14 @@ if __name__ == "__main__":
     hyperparams = {**hp_settings[model_name], **{'use_jax':use_jax, 'vmap':vmap, 'max_steps':max_steps, 'jit': jit}}
     print(hyperparams)
 
-    X_train,y_train = read_data(f'linearly_separable/linearly_separable_{n_features}d_train.csv')
-    X_test,y_test = read_data(f'linearly_separable/linearly_separable_{n_features}d_train.csv')
+    assert os.path.exists(args.inputPath)
+    # inpF1=f'../../paper/benchmarks/linearly_separable/linearly_separable_{n_features}d_train.csv'
+    inpF1 = os.path.join(args.inputPath, 'linearly_separable_%dd_train.csv' % (n_features))
+    inpF2 = inpF1.replace('train', 'test')
+    print('M:inpF1', inpF1)
+    X_train, y_train = read_data(inpF1)
+    print('M:inpF2', inpF2)
+    X_test, y_test = read_data(inpF2)
 
     first_train_steps = []
     av_consec_train_steps = []
