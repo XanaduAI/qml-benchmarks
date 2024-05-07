@@ -40,8 +40,8 @@ Add the jobID to the google sheet for reference.
 
 ## Determinining the number of CPUs
 To avoid wasting resources, you should first determine how many CPUs are required. To have an idea of 
-CPU usage, launch a job and ssh to the compute node, and run top to see the CPU usage (then kill the job). 
-Repeat the process until a reasonable number of CPUs is found (i.e. most are in use). 
+CPU usage, launch a job for a short amount of time, then kill it. Run `seff JOBID` and check the CPU usage.
+Repeat the process, decreasing the number of CPUs each time until a reasonable number of CPUs is found (i.e. most are in use). 
 
 Add this choice to the `CPUs` row of the google sheet. 
 
