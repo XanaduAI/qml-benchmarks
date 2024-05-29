@@ -41,7 +41,8 @@ if __name__ == "__main__":
     # You only need to change this to make a different performance indicator
 
     #define model
-    from qml_benchmarks.models.quantum_metric_learning import QuantumMetricLearner as Model
+    #from qml_benchmarks.models.quantum_metric_learning import QuantumMetricLearner as Model
+    from qml_benchmarks.models.iqp_variational import IQPVariationalClassifier as Model
 
     #implementation attributes of model
     use_jax = True
@@ -49,10 +50,10 @@ if __name__ == "__main__":
     jit = True
     model_settings = {'use_jax': use_jax, 'vmap': vmap, 'jit': jit}
 
-    max_steps = 100 #the number of gradient descent steps to use to estimate the step time
+    max_steps = 25 #the number of gradient descent steps to use to estimate the step time
     perf_ind_name = 'JAX'  #a name for the performance indicator used for naming files
-    n_trials = 5 #number of trials to average over
-
+    n_trials = 1 #number of trials to average over
+    n_test = -1 #number of test set points. For full test set use n_test = -1
     #################################
 
     n_features = args.numFeatures  # dataset dimension
@@ -73,6 +74,10 @@ if __name__ == "__main__":
     X_train, y_train = read_data(inpF1)
     print('M:inpF2', inpF2)
     X_test, y_test = read_data(inpF2)
+
+    if n_test != -1:
+        X_test = X_test[:n_test]
+        y_test = y_test[:n_test]
 
     first_train_steps = []
     av_consec_train_steps = []

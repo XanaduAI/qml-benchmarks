@@ -1,28 +1,31 @@
 #!/bin/bash
 #SBATCH -N 1
+#SBATCH -A m4693
 #SBATCH -C cpu
-#SBATCH -q shared -t 1:00:00
+#SBATCH -q shared -t 2:00:00
 # SBATCH -q debug -t 5:00  # charged for full node
-#SBATCH -J perf_ind_qkernel2
+#SBATCH -J perf_ind_devel
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=6
 #SBATCH --output out1/%j.log
-#SBATCH  --licenses=scratch
+#SBATCH --licenses=scratch
+#SBATCH --mail-type=begin,end,fail
+#SBATCH --mail-user=thomas.germain@xanadu.ai
 # - - - E N D    O F    SLURM    C O M M A N D S
 set -u ;  # exit  if you try to use an uninitialized variable
 
 echo 'S:start'
 
-numFeatures=3
+numFeatures=15
 
 # .... container
 # salloc -q interactive -C cpu -t 4:00:00 -A nstaff
 
 #IMG=balewski/ubu22-pennylane:p5  # old
-IMG=jbowles/ubu22-pennylane:p5
+IMG=tgermain/ubu22-pennylane-flax
 echo use image $IMG
 
-POD_PUB=//dvs_ro/cfs/cdirs/m4139/qml-benchmarks/nersc/podman/
+POD_PUB=/dvs_ro/cfs/cdirs/m4139/qml-benchmarks/nersc/podman/
 #POD_PUB=/dvs_ro/cfs/cdirs/nstaff/balewski/podman_common/  #old
 export PODMANHPC_ADDITIONAL_STORES=$POD_PUB
 
@@ -36,13 +39,13 @@ cp -rp performance_indicators *.slr *.sh   $outPath
 
 
 #... location of input on CSF
-CFSH=/global/cfs/cdirs/m4139  # for Joseph
+CFSH=/global/cfs/cdirs/m4693  # for project member
 # CFSH=/pscratch/sd/b/balewski/pennylane_wrk  # for Jan
-BASE_DIR=/qml-benchmarks   # here git has home
+BASE_DIR=/qml-benchmarks-devel   # here git has home
 WORK_DIR=$BASE_DIR/nersc
 
 #... the task to be executed
-CMD=" python3 -u  performance_indicators/perf_ind_kernel.py --numFeatures $numFeatures --inputPath performance_indicators/linearly_separable/ "
+CMD=" python3 -u performance_indicators/perf_ind_variational.py --numFeatures $numFeatures --inputPath performance_indicators/linearly_separable/ "
 #CMD=" python3 -u -c \"import pennylane \"; echo done1  "
 #CMD=" python3 -u -c \"import qml_benchmarks \";  echo done2 host  "
 
@@ -55,7 +58,7 @@ cd $outPath
 
 G=1
 echo 'S:ready to run '; pwd
-srun -n $G  ./wrap_podman.sh $IMG " $CMD "  $outPath  $CFSH $BASE_DIR $WORK_DIR
+srun -n $G  ./wrap_podman.sh $IMG " $CMD " $CFSH $BASE_DIR $WORK_DIR
 
 sleep 1
 echo 'S:end '; date
