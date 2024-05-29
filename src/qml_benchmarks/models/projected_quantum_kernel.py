@@ -175,7 +175,7 @@ class ProjectedQuantumKernel(BaseEstimator, ClassifierMixin):
                 return [qml.expval(qml.PauliZ(wires=i)) for i in range(self.n_qubits_)]
 
             @qjit(autograph=True)
-            def circuit_as_array(x):
+            def ccircuit_as_array(x):
                 xvals = jnp.array(circuitX(x))
                 yvals = jnp.array(circuitY(x))
                 zvals = jnp.array(circuitZ(x))
@@ -203,7 +203,7 @@ class ProjectedQuantumKernel(BaseEstimator, ClassifierMixin):
         elif "lightning" in self.dev_type and self.jit:
             # circuit_as_array = qjit(circuit_as_array)
             def batch_circuit_as_array(X):
-                return jnp.array([circuit_as_array(x) for x in X])
+                return jnp.array([ccircuit_as_array(x) for x in X])
             circuit_as_array = batch_circuit_as_array
 
         return circuit_as_array
@@ -223,23 +223,24 @@ class ProjectedQuantumKernel(BaseEstimator, ClassifierMixin):
         # get all of the Pauli expvals needed to constrcut the kernel
         self.circuit = self.construct_circuit()
 
-        valsX1 = np.array(self.circuit(X1))
-        valsX1 = np.reshape(valsX1, (dim1, 3, -1))
-        valsX2 = np.array(self.circuit(X2))
-        valsX2 = np.reshape(valsX2, (dim2, 3, -1))
-
-        valsX_X1 = valsX1[:, 0]
-        valsX_X2 = valsX2[:, 0]
-        valsY_X1 = valsX1[:, 1]
-        valsY_X2 = valsX2[:, 1]
-        valsZ_X1 = valsX1[:, 2]
-        valsZ_X2 = valsX2[:, 2]
-
-        all_vals_X1 = np.reshape(jnp.concatenate((valsX_X1, valsY_X1, valsZ_X1)), -1)
-        default_gamma = 1 / np.var(all_vals_X1) / self.n_features_
-
         if self.use_jax:
-            #no actually using JAX here but it is part of the JAX pipeline
+            #not actually using JAX here but it is part of the JAX pipeline
+
+            valsX1 = np.array(self.circuit(X1))
+            valsX1 = np.reshape(valsX1, (dim1, 3, -1))
+            valsX2 = np.array(self.circuit(X2))
+            valsX2 = np.reshape(valsX2, (dim2, 3, -1))
+
+            valsX_X1 = valsX1[:, 0]
+            valsX_X2 = valsX2[:, 0]
+            valsY_X1 = valsX1[:, 1]
+            valsY_X2 = valsX2[:, 1]
+            valsZ_X1 = valsX1[:, 2]
+            valsZ_X2 = valsX2[:, 2]
+
+            all_vals_X1 = np.reshape(np.concatenate((valsX_X1, valsY_X1, valsZ_X1)), -1)
+            default_gamma = 1 / np.var(all_vals_X1) / self.n_features_
+
             kernel_matrix = np.zeros([dim1, dim2])
             for i in range(dim1):
                 for j in range(dim2):
@@ -251,31 +252,41 @@ class ProjectedQuantumKernel(BaseEstimator, ClassifierMixin):
                         -default_gamma * self.gamma_factor * (sumX + sumY + sumZ)
                     )
 
-        else:
-            valsX_X1 = jnp.array(valsX_X1)
-            valsX_X2 = jnp.array(valsX_X2)
-            valsY_X1 = jnp.array(valsY_X1)
-            valsY_X2 = jnp.array(valsY_X2)
-            valsZ_X1 = jnp.array(valsZ_X1)
-            valsZ_X2 = jnp.array(valsZ_X2)
+        elif "lightning" in self.dev_type and self.jit:
+            valsX1 = jnp.array(self.circuit(X1))
+            valsX1 = jnp.reshape(valsX1, (dim1, 3, -1))
+            valsX2 = jnp.array(self.circuit(X2))
+            valsX2 = jnp.reshape(valsX2, (dim2, 3, -1))
+
+            valsX_X1 = valsX1[:, 0]
+            valsX_X2 = valsX2[:, 0]
+            valsY_X1 = valsX1[:, 1]
+            valsY_X2 = valsX2[:, 1]
+            valsZ_X1 = valsX1[:, 2]
+            valsZ_X2 = valsX2[:, 2]
+
+            all_vals_X1 = jnp.reshape(jnp.concatenate((valsX_X1, valsY_X1, valsZ_X1)), -1)
+            default_gamma = 1 / jnp.var(all_vals_X1) / self.n_features_
 
             @qjit(autograph=True)
-            def construct_kernel(valsX_X1, valsX_X2, valsY_X1, valsY_X2, valsZ_X1, valsZ_X2,
-                                 dim1, dim2, default_gamma):
+            def construct_kernel(valsX_X1, valsX_X2, valsY_X1, valsY_X2, valsZ_X1, valsZ_X2):
                 kernel_matrix = jnp.zeros([dim1, dim2])
                 for i in range(dim1):
                     for j in range(dim2):
-                        sumX = sum([(valsX_X1[i, q] - valsX_X2[j, q]) ** 2 for q in range(self.n_qubits_)])
-                        sumY = sum([(valsY_X1[i, q] - valsY_X2[j, q]) ** 2 for q in range(self.n_qubits_)])
-                        sumZ = sum([(valsZ_X1[i, q] - valsZ_X2[j, q]) ** 2 for q in range(self.n_qubits_)])
+                        kx = jnp.array([(valsX_X1[i, q] - valsX_X2[j, q]) ** 2 for q in range(self.n_qubits_)])
+                        ky = jnp.array([(valsY_X1[i, q] - valsY_X2[j, q]) ** 2 for q in range(self.n_qubits_)])
+                        kz = jnp.array([(valsZ_X1[i, q] - valsZ_X2[j, q]) ** 2 for q in range(self.n_qubits_)])
 
-                        kernel_matrix = kernel_matrix.at[i,j].set(np.exp(
+                        sumX = jnp.sum(kx)
+                        sumY = jnp.sum(ky)
+                        sumZ = jnp.sum(kz)
+
+                        kernel_matrix = kernel_matrix.at[i,j].set(jnp.exp(
                             -default_gamma * self.gamma_factor * (sumX + sumY + sumZ))
                         )
                 return kernel_matrix
 
-            kernel_matrix = construct_kernel(valsX_X1, valsX_X2, valsY_X1, valsY_X2, valsZ_X1, valsZ_X2,
-                                 dim1, dim2, default_gamma)
+            kernel_matrix = construct_kernel(valsX_X1, valsX_X2, valsY_X1, valsY_X2, valsZ_X1, valsZ_X2)
 
         return kernel_matrix
 
