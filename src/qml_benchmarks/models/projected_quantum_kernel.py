@@ -27,7 +27,6 @@ from qml_benchmarks.model_utils import chunk_vmapped_fn
 
 jax.config.update("jax_enable_x64", True)
 
-
 class ProjectedQuantumKernel(BaseEstimator, ClassifierMixin):
     def __init__(
         self,
@@ -39,10 +38,10 @@ class ProjectedQuantumKernel(BaseEstimator, ClassifierMixin):
         trotter_steps=5,
         use_jax=False,
         jit=True,
-        vmap = False,
+        vmap = True,
         max_vmap=None,
         scaling=1.0,
-        dev_type="default.qubit.jax",
+        dev_type=None,
         qnode_kwargs={},
         random_state=42,
     ):
@@ -99,16 +98,15 @@ class ProjectedQuantumKernel(BaseEstimator, ClassifierMixin):
         self.use_jax = use_jax
         self.vmap = vmap
         self.jit = jit
-        self.dev_type = dev_type
         self.qnode_kwargs = qnode_kwargs
         self.scaling = scaling
         self.random_state = random_state
         self.rng = np.random.default_rng(random_state)
-
-        if max_vmap is None:
-            self.max_vmap = 50
+        if dev_type is not None:
+            self.dev_type = dev_type
         else:
-            self.max_vmap = max_vmap
+            self.dev_type = "default.qubit.jax" if use_jax else "lightning.qubit"
+        self.max_vmap = 50 if max_vmap is None else max_vmap
 
         # data-dependant attributes
         # which will be initialised by calling "fit"
@@ -123,19 +121,12 @@ class ProjectedQuantumKernel(BaseEstimator, ClassifierMixin):
         return jax.random.PRNGKey(self.rng.integers(1000000))
 
     def construct_circuit(self):
-        """
-        Constructs the circuit to get the expvals of a given qubit and Pauli operator
-        We will use JAX to parallelize over these circuits in precompute kernel.
-        Args:
-            P: a pennylane Pauli X,Y,Z operator on a given qubit
-        """
-        if self.embedding == "IQP":
 
+        if self.embedding == "IQP":
             def embedding(x):
                 qml.IQPEmbedding(x, wires=range(self.n_qubits_), n_repeats=2)
 
         elif self.embedding == "Hamiltonian":
-
             def embedding(x):
                 evol_time = self.t / self.trotter_steps * (self.n_qubits_ - 1)
                 for i in range(self.n_qubits_):
@@ -153,35 +144,7 @@ class ProjectedQuantumKernel(BaseEstimator, ClassifierMixin):
 
         dev = qml.device(self.dev_type, wires=self.n_qubits_)
 
-        if "lightning" in self.dev_type and self.jit:
-            # currently only support for returning expvals of qubit-wise commuting observables,
-            # so we split into three circuits
-            @qjit(autograph=True)
-            @qml.qnode(dev, **self.qnode_kwargs)
-            def circuitX(x):
-                embedding(x)
-                return [qml.expval(qml.PauliX(wires=i)) for i in range(self.n_qubits_)]
-
-            @qjit(autograph=True)
-            @qml.qnode(dev, **self.qnode_kwargs)
-            def circuitY(x):
-                embedding(x)
-                return [qml.expval(qml.PauliY(wires=i)) for i in range(self.n_qubits_)]
-
-            @qjit(autograph=True)
-            @qml.qnode(dev, **self.qnode_kwargs)
-            def circuitZ(x):
-                embedding(x)
-                return [qml.expval(qml.PauliZ(wires=i)) for i in range(self.n_qubits_)]
-
-            @qjit(autograph=True)
-            def ccircuit_as_array(x):
-                xvals = jnp.array(circuitX(x))
-                yvals = jnp.array(circuitY(x))
-                zvals = jnp.array(circuitZ(x))
-                return jnp.concatenate((xvals, yvals, zvals))
-
-        else:
+        if self.use_jax:
             @qml.qnode(dev, **self.qnode_kwargs)
             def circuit(x):
                 embedding(x)
@@ -191,22 +154,50 @@ class ProjectedQuantumKernel(BaseEstimator, ClassifierMixin):
                         + [qml.expval(qml.PauliZ(wires=i)) for i in range(self.n_qubits_)]
                 )
 
-            def circuit_as_array(x):
+            def circuit_XYZ(x):
                 return jnp.array(circuit(x))
 
+        else:
+            # currently only support for returning expvals of qubit-wise commuting observables,
+            # so we split into three circuits
+            @qml.qnode(dev, **self.qnode_kwargs)
+            def circuitX(x):
+                embedding(x)
+                return [qml.expval(qml.PauliX(wires=i)) for i in range(self.n_qubits_)]
 
-        if self.use_jax and self.jit:
-            circuit_as_array = jax.jit(circuit_as_array)
-            circuit_as_array = jax.vmap(circuit_as_array, in_axes=(0))
-            circuit_as_array = chunk_vmapped_fn(circuit_as_array, 0, self.max_vmap)
+            @qml.qnode(dev, **self.qnode_kwargs)
+            def circuitY(x):
+                embedding(x)
+                return [qml.expval(qml.PauliY(wires=i)) for i in range(self.n_qubits_)]
 
-        elif "lightning" in self.dev_type and self.jit:
-            # circuit_as_array = qjit(circuit_as_array)
-            def batch_circuit_as_array(X):
-                return jnp.array([ccircuit_as_array(x) for x in X])
-            circuit_as_array = batch_circuit_as_array
+            @qml.qnode(dev, **self.qnode_kwargs)
+            def circuitZ(x):
+                embedding(x)
+                return [qml.expval(qml.PauliZ(wires=i)) for i in range(self.n_qubits_)]
 
-        return circuit_as_array
+            def circuit_XYZ(x):
+                xvals = jnp.array(circuitX(x))
+                yvals = jnp.array(circuitY(x))
+                zvals = jnp.array(circuitZ(x))
+                return jnp.concatenate((xvals, yvals, zvals))
+
+        if self.jit:
+            if self.use_jax:
+                circuit_XYZ = jax.jit(circuit_XYZ)
+            else:
+                circuit_XYZ = qjit(circuit_XYZ, autograph=True)
+
+        if self.vmap:
+            if self.use_jax:
+                batched_circuit = jax.vmap(circuit_XYZ, in_axes=(0))
+                batched_circuit = chunk_vmapped_fn(batched_circuit, 0, self.max_vmap)
+            else:
+                batched_circuit = catalyst.vmap(circuit_XYZ, in_axes=(0))
+        else:
+            def batched_circuit(X):
+                return jnp.vstack([circuit_XYZ(x) for x in X])
+
+        return batched_circuit
 
     def precompute_kernel(self, X1, X2):
         """
@@ -225,7 +216,6 @@ class ProjectedQuantumKernel(BaseEstimator, ClassifierMixin):
 
         if self.use_jax:
             #not actually using JAX here but it is part of the JAX pipeline
-
             valsX1 = np.array(self.circuit(X1))
             valsX1 = np.reshape(valsX1, (dim1, 3, -1))
             valsX2 = np.array(self.circuit(X2))
@@ -252,7 +242,7 @@ class ProjectedQuantumKernel(BaseEstimator, ClassifierMixin):
                         -default_gamma * self.gamma_factor * (sumX + sumY + sumZ)
                     )
 
-        elif "lightning" in self.dev_type and self.jit:
+        else:
             valsX1 = jnp.array(self.circuit(X1))
             valsX1 = jnp.reshape(valsX1, (dim1, 3, -1))
             valsX2 = jnp.array(self.circuit(X2))
@@ -268,7 +258,6 @@ class ProjectedQuantumKernel(BaseEstimator, ClassifierMixin):
             all_vals_X1 = jnp.reshape(jnp.concatenate((valsX_X1, valsY_X1, valsZ_X1)), -1)
             default_gamma = 1 / jnp.var(all_vals_X1) / self.n_features_
 
-            @qjit(autograph=True)
             def construct_kernel(valsX_X1, valsX_X2, valsY_X1, valsY_X2, valsZ_X1, valsZ_X2):
                 kernel_matrix = jnp.zeros([dim1, dim2])
                 for i in range(dim1):
@@ -286,6 +275,7 @@ class ProjectedQuantumKernel(BaseEstimator, ClassifierMixin):
                         )
                 return kernel_matrix
 
+            construct_kernel = qjit(construct_kernel, autograph=True) if self.jit else construct_kernel
             kernel_matrix = construct_kernel(valsX_X1, valsX_X2, valsY_X1, valsY_X2, valsZ_X1, valsZ_X2)
 
         return kernel_matrix

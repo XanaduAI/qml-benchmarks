@@ -27,17 +27,16 @@ from catalyst import qjit
 
 jax.config.update("jax_enable_x64", True)
 
-
 class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
     def __init__(
         self,
         svm=SVC(kernel="precomputed", probability=True),
         repeats=2,
         C=1.0,
-        dev_type = 'default.qubit.jax',
-        use_jax=None,
-        vmap=None,
-        jit=None,
+        dev_type = None,
+        use_jax=False,
+        vmap=True,
+        jit=True,
         random_state=42,
         scaling=1.0,
         max_vmap=250,
@@ -83,10 +82,13 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
         self.random_state = random_state
         self.rng = np.random.default_rng(random_state)
         # device-related attributes
-        self.dev_type = dev_type
-        self.use_jax = use_jax if use_jax is not None else self.dev_type == "default.qubit.jax"
-        self.vmap = vmap if vmap is not None else self.use_jax
-        self.jit = jit if jit is not None else self.use_jax
+        if dev_type is not None:
+            self.dev_type = dev_type
+        else:
+            self.dev_type = "default.qubit.jax" if use_jax else "lightning.qubit"
+        self.use_jax = use_jax
+        self.vmap = vmap
+        self.jit = jit
 
         # data-dependant attributes
         # which will be initialised by calling "fit"
@@ -96,8 +98,6 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
         self.circuit = None
 
     def generate_key(self):
-        if self.use_jax:
-            return jax.random.PRNGKey(self.rng.integers(1000000))
         return self.rng.integers(1000000)
 
     def construct_circuit(self):
@@ -130,10 +130,11 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
 
         circuit = wrapped_circuit
 
-        if self.use_jax and self.jit:
-            circuit = jax.jit(circuit)
-        elif "lightning" in self.dev_type and self.jit:
-            circuit = qjit(circuit)
+        if self.jit:
+            if self.use_jax:
+                circuit = jax.jit(circuit)
+            else:
+                circuit = qjit(circuit)
 
         self.circuit = circuit
 
@@ -153,13 +154,18 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
 
         circuit = self.construct_circuit()
 
-        if self.use_jax and self.vmap:
+        if self.use_jax:
             # concatenate all pairs of vectors
             Z = np.array([np.concatenate((X1[i], X2[j])) for i in range(dim1) for j in range(dim2)])
             # if batched circuit is used
-            self.batched_circuit = chunk_vmapped_fn(
-                jax.vmap(circuit, 0), start=0, max_vmap=self.max_vmap
-            )
+            if self.vmap:
+                self.batched_circuit = chunk_vmapped_fn(
+                    jax.vmap(circuit, 0), start=0, max_vmap=self.max_vmap
+                )
+            else:
+                def batched_circuit(X):
+                    return jnp.vstack([circuit(x) for x in X])
+                self.batched_circuit = batched_circuit
             kernel_values = self.batched_circuit(Z)
             # reshape the values into the kernel matrix
             kernel_matrix = np.reshape(kernel_values, (dim1, dim2))
@@ -167,7 +173,6 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
             # could also use catalyst.vmap like as above, although I think it does basically the same thing as this.
             X1 = jnp.array(X1)
             X2 = jnp.array(X2)
-            @qjit(autograph=True)
             def construct_kernel(X1,X2):
                 dim1 = len(X1)
                 dim2 = len(X2)
@@ -176,6 +181,8 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
                     for j, y in enumerate(X2):
                        kernel_matrix = kernel_matrix.at[i,j].set(circuit(jnp.concatenate((x, y))))
                 return  kernel_matrix
+            if self.jit:
+                construct_kernel = qjit(construct_kernel, autograph=True)
             kernel_matrix = construct_kernel(X1,X2)
 
         return kernel_matrix
@@ -207,13 +214,7 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
             y (np.ndarray): Labels of shape (n_samples,)
         """
 
-        if self.use_jax:
-            self.svm.random_state = int(
-                jax.random.randint(self.generate_key(), shape=(1,), minval=0, maxval=1000000)
-            )
-        else:
-            self.svm.random_state = self.generate_key()
-
+        self.svm.random_state = self.generate_key()
         self.initialize(X.shape[1], np.unique(y))
 
         self.scaler = MinMaxScaler(feature_range=(-np.pi / 2, np.pi / 2))

@@ -29,13 +29,13 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
         batch_size=32,
         use_jax=False,
         jit=True,
-        vmap=False,
+        vmap=True,
         max_vmap=None,
         max_steps=10000,
         convergence_interval=200,
         random_state=42,
         scaling=1.0,
-        dev_type="default.qubit",
+        dev_type=None,
         qnode_kwargs={},
     ):
         r"""
@@ -77,7 +77,6 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
         self.max_steps = max_steps
         self.convergence_interval = convergence_interval
         self.batch_size = batch_size
-        self.dev_type = dev_type
         self.qnode_kwargs = qnode_kwargs
         self.use_jax = use_jax
         self.vmap = vmap
@@ -86,10 +85,12 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
         self.random_state = random_state
         self.rng = np.random.default_rng(random_state)
 
-        if max_vmap is None:
-            self.max_vmap = self.batch_size
+        if dev_type is not None:
+            self.dev_type = dev_type
         else:
-            self.max_vmap = max_vmap
+            self.dev_type = "default.qubit.jax" if use_jax else "lightning.qubit"
+
+        self.max_vmap = self.batch_size if max_vmap is None else max_vmap
 
         # data-dependant attributes
         # which will be initialised by calling "fit"
@@ -151,7 +152,6 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
 
             if self.jit:
                 circuit = qjit(circuit)
-                # circuit(np.random.rand(self.n_layers, self.n_qubits_, 3), np.random.rand(self.n_qubits_))
 
             self.circuit = circuit 
 
@@ -246,7 +246,6 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
                 return jnp.mean(probs)
 
             if self.jit:
-                from catalyst import qjit
                 loss_fn = qjit(loss_fn)
 
             self.params_ = train_with_catalyst(self, loss_fn, optimizer, X, y, self.generate_key)
