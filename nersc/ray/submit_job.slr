@@ -1,0 +1,128 @@
+#!/bin/bash
+#SBATCH -A m4693
+#SBATCH -C cpu
+#SBATCH -q shared 
+#SBATCH -t 0:10:00
+#SBATCH --job-name=qml_ray
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1 # 1 ray worker runtime per node
+#SBATCH --cpus-per-task=8
+#SBATCH --gpus-per-task=4 # 4 GPUs per node
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=thomas.germain@xanadu.ai
+#SBATCH --output=out/Job-%x.%j.out
+#SBATCH --error=out/Job-%x.%j.err
+
+set -u ;  # exit  if you try to use an uninitialized variable
+
+echo "S:starting"
+echo "S:PWD=$PWD"
+
+################################################################
+# Define Bash utility functions 
+################################################################
+
+get_node_names(){
+    # Getting the node names
+    export nodes=$(scontrol show hostnames "$SLURM_JOB_NODELIST")
+    export nodes_array=($nodes)
+    
+    redis_password=$(uuidgen)
+    export redis_password
+
+    export head_node=${nodes_array[0]}
+    export head_node_ip=$(srun --nodes=1 --ntasks=1 -w "$head_node" hostname --ip-address)
+
+    # if we detect a space character in the head node IP, we'll
+    # convert it to an ipv4 address. This step is optional.
+    if [[ "$head_node_ip" == *" "* ]]; then
+        IFS=' ' read -ra ADDR <<<"$head_node_ip"
+            if [[ ${#ADDR[0]} -gt 16 ]]; then
+                head_node_ip=${ADDR[1]}
+            else
+                head_node_ip=${ADDR[0]}
+            fi
+        echo "IPV6 address detected. We split the IPV4 address as $head_node_ip"
+    fi
+    echo "Head node=${head_node}::[${head_node_ip}]"
+}
+
+start_head(){
+    port=6379
+    export ip_head=$head_node_ip:$port
+    echo "IP Head: $ip_head"
+    echo "Starting HEAD at $head_node"
+    srun --nodes=1 --ntasks=1 -w "$head_node" \
+        ray start --head \
+        --node-ip-address="$head_node_ip" \
+        --port=$port \
+        --redis-password=${redis_password} \
+        --num-cpus 1
+        --block &
+}
+
+start_workers(){
+    # number of nodes other than the head node
+    export worker_num=$((${SLURM_JOB_NUM_NODES} - 1))
+
+    for ((i = 1; i <= worker_num; i++)); do
+        node_i=${nodes_array[$i]}
+        echo "Starting WORKER $i at ${node_i} connecting to ${ip_head}"
+        srun --nodes=1 --ntasks=1 -w "$node_i" \
+            ray start --address "$ip_head" \
+            --redis-password=${redis_password} \
+            --num-cpus 4 \
+            --block &
+        sleep 3
+    done
+}
+
+################################################################
+# Define paths
+################################################################
+
+IMG=tgermain/ubu22-pennylane-ray
+echo "S:IMG=$IMG"
+
+#SANDBOX=$SCRATCH/tmp_pennylane_jobs/${SLURM_JOBID}
+#echo "S:SANDBOX=$SANDBOX"
+
+CFSH=/global/cfs/cdirs/m4693  # CFS home
+REPO_DIR=$CFSH/qml-benchmarks-devel  # qml-benchmark repo
+WORK_DIR=$REPO_DIR/nersc/ray/workdir  # to store output files
+
+# Script will run in the workdir mounted in the container,
+# this will allow us to access the output files easily.
+
+################################################################
+# Initialize Ray cluster environment
+################################################################
+
+#get_node_names
+#start_head
+#start_workers
+
+################################################################
+# Run Python scripts in container
+################################################################
+
+CMD="python3 -u demo.py"
+
+podman-hpc run -it \
+    --volume $REPO_DIR:/qml-benchmarks \
+    --volume $WORK_DIR:/work_dir \
+    -e HDF5_USE_FILE_LOCKING='FALSE' \
+    --workdir /work_dir \
+    $IMG <<EOF 
+echo P:starting
+echo P:PWD=$PWD
+ls -l
+export PYTHONPATH=/qml-benchmarks/src/
+$CMD
+echo P:done
+exit
+EOF
+
+echo S:done
+
+# EOF
