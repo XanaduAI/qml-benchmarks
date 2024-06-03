@@ -89,6 +89,7 @@ echo "S:IMG=$IMG"
 
 CFSH=/global/cfs/cdirs/m4693  # CFS home
 REPO_DIR=$CFSH/qml-benchmarks-devel  # qml-benchmark repo
+LOCAL_DIR=$REPO_DIR/nersc/local  # to store local python files
 WORK_DIR=$REPO_DIR/nersc/ray/workdir  # to store output files
 
 # Script will run in the workdir mounted in the container,
@@ -110,6 +111,7 @@ CMD="python3 -u demo.py"
 
 podman-hpc run -it \
     --volume $REPO_DIR:/qml-benchmarks \
+    --volume $LOCAL_DIR:/root \
     --volume $WORK_DIR:/work_dir \
     -e HDF5_USE_FILE_LOCKING='FALSE' \
     --workdir /work_dir \
@@ -117,7 +119,6 @@ podman-hpc run -it \
 echo P:starting
 echo P:PWD=$PWD
 ls -l
-export PYTHONPATH=/qml-benchmarks/src/
 $CMD
 echo P:done
 exit

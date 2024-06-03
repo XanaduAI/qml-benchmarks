@@ -29,6 +29,13 @@ from sklearn.model_selection import GridSearchCV
 from qml_benchmarks.hyperparam_search_utils import read_data, construct_hyperparameter_grid
 from qml_benchmarks.hyperparameter_settings import hyper_parameter_settings
 
+
+from joblib import parallel_backend
+from ray.util.joblib import register_ray  
+
+register_ray()  
+
+
 np.random.seed(42)
 
 logging.info('cpu count:' + str(os.cpu_count()))
@@ -162,12 +169,14 @@ if __name__ == "__main__":
             logging.warning(msg)
             sys.exit(msg)
         else:
-            logging.warning("Cleaning existing results for ", os.path.join(results_path, results_filename_stem + ".csv"))
+            logging.warning("Cleaning existing results for " + os.path.join(results_path, results_filename_stem + ".csv"))
 
 
     ###########################################################################
     # Single fit to check everything works
     ###########################################################################
+    print('Initial fit()')
+
     classifier = Classifier()
     a = time.time()
     classifier.fit(X, y)
@@ -195,13 +204,17 @@ if __name__ == "__main__":
     ###########################################################################
     # Hyperparameter search
     ###########################################################################
-    gs = GridSearchCV(estimator=classifier, param_grid=hyperparam_grid,
-                        scoring=args.hyperparameter_scoring,
-                        refit=args.hyperparameter_refit,
-                        verbose=3,
-                        n_jobs=-1).fit(
-        X, y
-    )
+    print('Hyperparameter search (%s)' % args.n_jobs)
+
+    parallel_backend_name = 'ray'
+    print('parallel_backend:', parallel_backend_name)
+    with parallel_backend(parallel_backend_name, n_jobs=args.n_jobs):
+        gs = GridSearchCV(estimator=classifier, param_grid=hyperparam_grid,
+                            scoring=args.hyperparameter_scoring,
+                            refit=args.hyperparameter_refit,
+                            verbose=3).fit(
+            X, y
+        )
     logging.info("Best hyperparams")
     logging.info(gs.best_params_)
 

@@ -48,9 +48,9 @@ if __name__ == "__main__":
     use_jax = True
     vmap = True
     jit = True
-    model_settings = {'use_jax': use_jax, 'vmap': vmap, 'jit': jit}
+    max_steps = 100  #the number of gradient descent steps to use to estimate the step time
+    model_settings = {'use_jax': use_jax, 'vmap': vmap, 'jit': jit, 'max_steps': max_steps}
 
-    max_steps = 25 #the number of gradient descent steps to use to estimate the step time
     perf_ind_name = 'JAX'  #a name for the performance indicator used for naming files
     n_trials = 1 #number of trials to average over
     n_test = -1 #number of test set points. For full test set use n_test = -1
@@ -95,6 +95,7 @@ if __name__ == "__main__":
         step_times = np.array([model.loss_history_[1][i + 1] - model.loss_history_[1][i]
                                for i in range(len(model.loss_history_[1]) - 1)])
         step_times = np.insert(step_times, 0, [model.loss_history_[1][0]])
+        print('n_steps:', len(model.loss_history_[1]))
 
         #first train step
         first_train_steps.append(step_times[0])
