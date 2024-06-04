@@ -184,7 +184,6 @@ def train_with_catalyst(model, loss_fn, optimizer, X, y, random_key_generator, c
     params = model.params_
     opt = optimizer(learning_rate=model.learning_rate)
 
-    @qjit
     def update(i, args):
         params, opt_state, X, y, loss_history, key = args
         X_batch, y_batch = get_batch(X, y, key, batch_size=model.batch_size)
@@ -197,11 +196,14 @@ def train_with_catalyst(model, loss_fn, optimizer, X, y, random_key_generator, c
         key, subkey = jax.random.split(key)
         return (params, opt_state, X, y, loss_history, subkey)
 
-    @qjit
+    update = qjit(update) if model.jit else update
+
     def optimize(params, X, y, steps, loss_history, opt_state, key):
         args = (params, opt_state, X, y, loss_history, key)
         (params, opt_state, _, _, loss_history, key) = catalyst.for_loop(0,steps,1)(update)(args)
         return params, loss_history, opt_state
+
+    optimize = qjit(optimize) if  model.jit else update
 
     def train_until_convergence(params, X, y):
         converged = False
