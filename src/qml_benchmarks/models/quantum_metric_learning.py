@@ -14,13 +14,15 @@
 
 import warnings
 import pennylane as qml
+import catalyst
+from catalyst import qjit
 import numpy as np
 import jax
 from jax import numpy as jnp
 import optax
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.preprocessing import MinMaxScaler
-from qml_benchmarks.model_utils import chunk_vmapped_fn, train
+from qml_benchmarks.model_utils import chunk_vmapped_fn, train, train_with_catalyst
 
 jax.config.update("jax_enable_x64", True)
 
@@ -52,11 +54,11 @@ class QuantumMetricLearner(BaseEstimator, ClassifierMixin):
         batch_size=32,
         use_jax = True,
         vmap = True,
-        max_vmap=4,
+        max_vmap=None,
         jit=True,
         random_state=42,
         scaling=1.0,
-        dev_type="default.qubit.jax",
+        dev_type=None,
         qnode_kwargs={"interface": "jax-jit"},
     ):
         """
@@ -104,16 +106,17 @@ class QuantumMetricLearner(BaseEstimator, ClassifierMixin):
         self.jit = jit
         self.use_jax = use_jax
         self.vmap = vmap
-        self.dev_type = dev_type
         self.qnode_kwargs = qnode_kwargs
         self.scaling = scaling
         self.random_state = random_state
         self.rng = np.random.default_rng(random_state)
 
-        if max_vmap is None:
-            self.max_vmap = self.batch_size
+        if dev_type is not None:
+            self.dev_type = dev_type
         else:
-            self.max_vmap = max_vmap
+            self.dev_type = "default.qubit.jax" if use_jax else "lightning.qubit"
+
+        self.max_vmap = 4 if max_vmap is None else max_vmap
 
         # data-dependant attributes
         # which will be initialised by calling "fit"
@@ -121,7 +124,6 @@ class QuantumMetricLearner(BaseEstimator, ClassifierMixin):
         self.n_qubits_ = None
         self.n_features_ = None
         self.scaler = None  # data scaler will be fitted on training data
-        self.circuit = None
 
     def generate_key(self):
         return jax.random.PRNGKey(self.rng.integers(1000000))
@@ -130,29 +132,44 @@ class QuantumMetricLearner(BaseEstimator, ClassifierMixin):
         dev = qml.device(self.dev_type, wires=self.n_qubits_)
         wires = range(self.n_qubits_)
 
-        @qml.qnode(dev, **self.qnode_kwargs)
-        def circuit(params, x1, x2):
-            qml.QAOAEmbedding(features=x1, weights=params["weights"], wires=wires)
-            qml.adjoint(qml.QAOAEmbedding)(features=x2, weights=params["weights"], wires=wires)
-            return qml.expval(qml.Projector(np.array([0] * self.n_qubits_), wires=wires))
+        def wrapped_circuit(params, x1, x2):
+            @qml.qnode(dev, **self.qnode_kwargs)
+            def circuit(params, x1, x2):
+                qml.QAOAEmbedding(features=x1, weights=params["weights"], wires=wires)
+                qml.adjoint(qml.QAOAEmbedding(features=x2, weights=params["weights"], wires=wires))
+                return qml.probs()
+            return circuit(params, x1, x2)[0]
 
-        self.circuit = circuit
+        circuit = wrapped_circuit
 
         if self.jit:
-            circuit = jax.jit(circuit)
-        overlaps = jax.vmap(circuit, in_axes=(None, 0, 0))
-        chunked_overlaps = chunk_vmapped_fn(overlaps, start=1, max_vmap=self.max_vmap)
+            if self.use_jax:
+                circuit = jax.jit(circuit)
+            else:
+                qjit(circuit, autograph=True)
+
+        # always vmapping for now
+        if self.use_jax:
+            batched_overlaps = jax.vmap(circuit, in_axes=(None, 0, 0))
+            chunked_overlaps = chunk_vmapped_fn(batched_overlaps, start=1, max_vmap=self.max_vmap)
+        else:
+            def batched_overlaps(params, X1, X2):
+                return jnp.array([circuit(params, elem[0], elem[1]) for elem in jnp.stack((X1, X2), axis=1)])
 
         def model(params, X1=None, X2=None):
-            res = overlaps(params, X1, X2)
-            return jnp.mean(res)
-
-        def chunked_model(params, X1=None, X2=None):
-            res = chunked_overlaps(params, X1, X2)
+            res = batched_overlaps(params, X1, X2)
             return jnp.mean(res)
 
         self.forward = model
-        self.chunked_forward = chunked_model
+
+        if self.use_jax:
+            def chunked_model(params, X1=None, X2=None):
+                res = chunked_overlaps(params, X1, X2)
+                return jnp.mean(res)
+
+            self.chunked_forward = chunked_model
+        else:
+            self.chunked_forward = self.forward
 
         return self.forward
 
@@ -214,18 +231,17 @@ class QuantumMetricLearner(BaseEstimator, ClassifierMixin):
             return 1 - d_hs
 
         if self.jit:
-            loss_fn = jax.jit(loss_fn)
+            loss_fn = jax.jit(loss_fn) if self.use_jax else qjit(loss_fn)
 
         optimizer = optax.adam
-        self.params_ = train(
-            self,
-            loss_fn,
-            optimizer,
-            A,
-            B,
-            self.generate_key,
-            convergence_interval=self.convergence_interval,
-        )
+
+        if self.use_jax:
+            self.params_ = train(self, loss_fn, optimizer, A, B, self.generate_key,
+                                 convergence_interval=self.convergence_interval)
+
+        else:
+            self.params_ = train_with_catalyst(self, loss_fn, optimizer, A, B, self.generate_key,
+                                               convergence_interval=self.convergence_interval)
 
         self.params_["examples_-1"] = A
         self.params_["examples_+1"] = B
@@ -275,8 +291,12 @@ class QuantumMetricLearner(BaseEstimator, ClassifierMixin):
             # create list [x, x, x, ...] to get overlaps with A_examples = [a1, a2, a3...] and B_examples
             x_tiled = jnp.tile(x, (self.n_examples_predict, 1))
 
-            pred_a = jnp.mean(self.chunked_forward(self.params_, A_examples, x_tiled))
-            pred_b = jnp.mean(self.chunked_forward(self.params_, B_examples, x_tiled))
+            if self.use_jax:
+                pred_a = jnp.mean(self.chunked_forward(self.params_, A_examples, x_tiled))
+                pred_b = jnp.mean(self.chunked_forward(self.params_, B_examples, x_tiled))
+            else:
+                pred_a = jnp.mean(self.forward(self.params_, A_examples, x_tiled))
+                pred_b = jnp.mean(self.forward(self.params_, B_examples, x_tiled))
 
             # normalise to [0,1]
             predictions.append([pred_a / (pred_a + pred_b), pred_b / (pred_a + pred_b)])
