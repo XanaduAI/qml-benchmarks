@@ -37,15 +37,15 @@ if __name__=="__main__":
     # You only need to change this to make a different performance indicator
 
     #define the model
-    from qml_benchmarks.models.iqp_kernel import IQPKernelClassifier as Model
+    from qml_benchmarks.models.projected_quantum_kernel import ProjectedQuantumKernel as Model
 
     #implementation attributes of model
-    use_jax = True
+    use_jax = False
     vmap = True
     jit = True
     model_settings = {'use_jax': use_jax, 'vmap': vmap, 'jit': jit}
 
-    perf_ind_name = 'JAX'  #a name for the performance indicator used for naming files
+    perf_ind_name = 'CAT_CPU'  #a name for the performance indicator used for naming files
 
     #################################
 
@@ -89,9 +89,9 @@ if __name__=="__main__":
 
     header = ['construct_kernel_time', 'training_time', 'predict_time', 'hyperparameters']
 
-    if not os.path.exists(perf_ind_name):
+    if not os.path.exists('performance_indicators/'+perf_ind_name):
         # Create the directory
-        os.mkdir(perf_ind_name)
+        os.mkdir('performance_indicators/'+perf_ind_name)
 
     #write perf indicator data
     with open('performance_indicators/'+perf_ind_name+'/'+filename, mode="w", newline="") as file:
