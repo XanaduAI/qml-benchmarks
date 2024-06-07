@@ -1,38 +1,36 @@
 #!/bin/bash
+
 echo W:myRank is $SLURM_PROCID
+
 IMG=$1
 CMD=$2
-CFSH=$3
-BASE_DIR=$4
-WORK_DIR=$5
 
 if [ $SLURM_PROCID -eq 0 ] ; then 
    echo W:IMG=$IMG 
    echo W:CMD=$CMD
-   #echo Q:fire $
 fi
 
-echo W:BASE_DIR=$BASE_DIR
-echo 'W:start podman'
+CFSH=/global/cfs/cdirs/m4693  # CFS home
+REPO_DIR=$CFSH/qml-benchmarks-devel  # qml-benchmark repo
+ROOT_DIR=$REPO_DIR/nersc/local  # to store local python files
+WORK_DIR=$REPO_DIR/nersc/ray/workdir  # to store output files
+
+# Script will run in the workdir mounted in the container,
+# this will allow us to access the output files easily.
+
 podman-hpc run -it \
-    --volume $CFSH/$BASE_DIR:/root \
-    --volume $CFSH/$BASE_DIR:/qml-benchmarks \
-    --volume $CFSH/$BASE_DIR/nersc/performance_indicators/linearly_separable:/linearly_separable \
-    --volume $CFSH/$WORK_DIR:/qml-benchmarks/nersc \
+    --volume $REPO_DIR:/qml-benchmarks \
+    --volume $ROOT_DIR:/root \
+    --volume $WORK_DIR:/work_dir \
     -e HDF5_USE_FILE_LOCKING='FALSE' \
-    --workdir /qml-benchmarks/nersc \
+    --workdir /work_dir \
     $IMG <<EOF 
-echo P:pwd; pwd
-echo P:all
-ls -l ../..
-export PYTHONPATH=/qml-benchmarks/src/
+echo P:starting
+echo P:PWD=$PWD
+ls -l
 $CMD
 echo P:done
 exit
 EOF
   
-echo 'W:done podman'
-
-# spare
-# 	   --volume $HOME:/home \
-    # --volume  $CFSH/qml-benchmarks:/root 
+echo 'W:done'

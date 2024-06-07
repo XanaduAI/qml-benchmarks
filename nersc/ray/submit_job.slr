@@ -1,17 +1,19 @@
 #!/bin/bash
 #SBATCH -A m4693
 #SBATCH -C cpu
-#SBATCH -q shared 
 #SBATCH -t 0:10:00
 #SBATCH --job-name=qml_ray
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1 # 1 ray worker runtime per node
-#SBATCH --cpus-per-task=8
-#SBATCH --gpus-per-task=4 # 4 GPUs per node
+#SBATCH --cpus-per-task=256
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=thomas.germain@xanadu.ai
 #SBATCH --output=out/Job-%x.%j.out
 #SBATCH --error=out/Job-%x.%j.err
+
+#-------------------------------------------------------------------
+# SBATCH -q shared 
+# SBATCH --gpus-per-task=4 # 4 GPUs per node
 
 set -u ;  # exit  if you try to use an uninitialized variable
 
@@ -78,22 +80,14 @@ start_workers(){
 }
 
 ################################################################
-# Define paths
+# Define image and command
 ################################################################
 
 IMG=tgermain/ubu22-pennylane-ray
+CMD="./run-search.sh"
+
 echo "S:IMG=$IMG"
-
-#SANDBOX=$SCRATCH/tmp_pennylane_jobs/${SLURM_JOBID}
-#echo "S:SANDBOX=$SANDBOX"
-
-CFSH=/global/cfs/cdirs/m4693  # CFS home
-REPO_DIR=$CFSH/qml-benchmarks-devel  # qml-benchmark repo
-LOCAL_DIR=$REPO_DIR/nersc/local  # to store local python files
-WORK_DIR=$REPO_DIR/nersc/ray/workdir  # to store output files
-
-# Script will run in the workdir mounted in the container,
-# this will allow us to access the output files easily.
+echo "S:CMD=$CMD"
 
 ################################################################
 # Initialize Ray cluster environment
@@ -107,23 +101,12 @@ WORK_DIR=$REPO_DIR/nersc/ray/workdir  # to store output files
 # Run Python scripts in container
 ################################################################
 
-CMD="python3 -u demo.py"
+N=1
 
-podman-hpc run -it \
-    --volume $REPO_DIR:/qml-benchmarks \
-    --volume $LOCAL_DIR:/root \
-    --volume $WORK_DIR:/work_dir \
-    -e HDF5_USE_FILE_LOCKING='FALSE' \
-    --workdir /work_dir \
-    $IMG <<EOF 
-echo P:starting
-echo P:PWD=$PWD
-ls -l
-$CMD
-echo P:done
-exit
-EOF
+echo "S:ready to run"
+srun -n $N ./wrap_podman.sh $IMG "$CMD"
 
+sleep 1
 echo S:done
 
 # EOF

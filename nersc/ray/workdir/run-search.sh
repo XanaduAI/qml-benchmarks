@@ -1,5 +1,7 @@
 #!/bin/bash -e
 
+export RAY_DEDUP_LOGS=0
+
 REPO=/qml-benchmarks
 DATA=${REPO}/nersc/performance_indicators/linearly_separable
 
@@ -19,7 +21,7 @@ python3 ${REPO}/scripts/run_hyperparameter_search.py\
  --classifier-name IQPVariationalClassifier\
  --dataset-path ${DATA}/linearly_separable_4d_train.csv\
  --clean True\
- --n_layers 1 2\
- --learning_rate 0.001\
- --repeats 1\
- --n-jobs 4
+ --n-jobs 256  # 4
+# --n_layers 1 2\
+# --learning_rate 0.001\
+# --repeats 1\

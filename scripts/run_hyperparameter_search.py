@@ -208,6 +208,7 @@ if __name__ == "__main__":
 
     parallel_backend_name = 'ray'
     print('parallel_backend:', parallel_backend_name)
+    print('hyperparam_grid:', hyperparam_grid)
     with parallel_backend(parallel_backend_name, n_jobs=args.n_jobs):
         gs = GridSearchCV(estimator=classifier, param_grid=hyperparam_grid,
                             scoring=args.hyperparameter_scoring,

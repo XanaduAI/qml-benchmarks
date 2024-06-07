@@ -46,7 +46,7 @@ pip3 install --user .  # install in /root/.local
 
 **Note:** `pip3 install --user .` will install in `/root/.local`, mounted to container.
 
-To make image available on CPU/GPU nodes, either:
+To make image available on CPU/GPU nodes, migrate your image onto the `$SCRATCH` filesystem with:
 ```
 podman-hpc migrate tgermain/ubu22-pennylane-ray[:version]
 ```
