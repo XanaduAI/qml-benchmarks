@@ -91,10 +91,13 @@ if __name__ == "__main__":
         with open(file_path, 'wb') as file:
             pickle.dump(data, file)
 
-    data[n_features] = [step_times[0], step_times[1]]
-
     with open(file_path, 'rb') as file:
         data = pickle.load(file)
+
+    data[n_features] = [step_times[0], step_times[1]]
+
+    with open(file_path, 'wb') as file:
+        pickle.dump(data, file)
 
     print('M:done')
 
