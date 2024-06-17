@@ -85,7 +85,12 @@ if __name__ == "__main__":
                            for i in range(len(model.loss_history_[1]) - 1)])
     step_times = np.insert(step_times, 0, [model.loss_history_[1][0]])
 
-    file_path = f'performance_indicators/profiling/step_times_{profile_name}_{model_name}.pkl'
+    dir_path = f'performance_indicators/profiling'
+    file_path = f'{dir_path}/step_times_{profile_name}_{model_name}.pkl'
+
+    if not os.path.exists(dir_path):
+        os.mkdir(dir_path)
+
     if not os.path.exists(file_path):
         data = {}
         with open(file_path, 'wb') as file:
