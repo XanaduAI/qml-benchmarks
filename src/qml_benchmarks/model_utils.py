@@ -73,12 +73,14 @@ def train(model, loss_fn, optimizer, X, y, random_key_generator, convergence_int
 
     # note: assumes that the loss function is a sample mean of
     # some function over the input data set
-    chunked_grad_fn = chunk_grad(grad_fn, model.max_vmap)
-    chunked_loss_fn = chunk_loss(loss_fn, model.max_vmap)
+    if model.vmap:
+        grad_fn = chunk_grad(grad_fn, model.max_vmap)
+        loss_fn = chunk_loss(loss_fn, model.max_vmap)
+
 
     def update(params, opt_state, x, y):
-        grads = chunked_grad_fn(params, x, y)
-        loss_val = chunked_loss_fn(params, x, y)
+        grads = grad_fn(params, x, y)
+        loss_val = loss_fn(params, x, y)
         updates, opt_state = opt.update(grads, opt_state)
         params = optax.apply_updates(params, updates)
         return params, opt_state, loss_val
