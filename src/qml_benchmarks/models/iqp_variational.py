@@ -130,9 +130,13 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
                 self.chunked_forward = chunk_vmapped_fn(self.forward, 1, self.max_vmap)
 
             else:
-                # use jax but do not batch feed the circuit
+                def apply_circuit(params, x):
+                    result = circuit(params, x)
+                    return params, result
+
                 def forward(params, X):
-                    return jnp.stack([circuit(params, x) for x in X])
+                    params, results = jax.lax.scan(apply_circuit, params, X)
+                    return results
 
                 self.forward = forward
 
@@ -153,9 +157,8 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
             if self.jit:
                 circuit = qjit(circuit)
 
-            self.circuit = circuit 
+            self.circuit = circuit
 
-            # use autograd and do not batch feed the circuit
             def forward(params, X):
                 return jnp.array([circuit(params, x) for x in X])
 
