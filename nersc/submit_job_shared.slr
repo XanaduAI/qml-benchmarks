@@ -1,0 +1,51 @@
+#!/bin/bash
+#SBATCH -A m4693
+#SBATCH -C cpu
+#SBATCH -t 0:10:00
+#SBATCH --job-name=qml_ray
+#SBATCH -q shared 
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1 # 1 ray worker runtime per node
+#SBATCH --cpus-per-task=8
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=thomas.germain@xanadu.ai
+#SBATCH --output=out/%j.%x.out
+#SBATCH --error=out/%j.%x.err
+
+#-------------------------------------------------------------------
+# SBATCH --gpus-per-task=4 # 4 GPUs per node
+
+set -u ;  # exit  if you try to use an uninitialized variable
+
+echo "S:starting"
+echo "S:PWD=$PWD"
+
+################################################################
+# Define image and command
+################################################################
+
+IMG=tgermain/ubu22-pennylane-ray
+CMD="./run_performance_indicator.sh"
+
+echo "S:IMG=$IMG"
+echo "S:CMD=$CMD"
+
+################################################################
+# Initialize Ray cluster environment
+################################################################
+
+# ...
+
+################################################################
+# Run Python scripts in container
+################################################################
+
+N=1
+
+echo "S:ready to run"
+srun -n $N ./wrap_podman.sh $IMG "$CMD"
+
+sleep 1
+echo S:done
+
+# EOF

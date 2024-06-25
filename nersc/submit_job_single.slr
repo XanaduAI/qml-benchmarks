@@ -8,8 +8,8 @@
 #SBATCH --cpus-per-task=256
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=thomas.germain@xanadu.ai
-#SBATCH --output=out/Job-%x.%j.out
-#SBATCH --error=out/Job-%x.%j.err
+#SBATCH --output=out/%j.%x.out
+#SBATCH --error=out/%j.%x.err
 
 #-------------------------------------------------------------------
 # SBATCH -q shared 
