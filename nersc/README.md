@@ -59,3 +59,14 @@ chmod -R a+rx $POD_PUB   # to allow anyone to use this image
 ```
 
 **TODO:** Check and update instructions about migrate for project
+
+## Run Podman
+
+``` bash
+
+IMG=tgermain/ubu22-pennylane-ray
+CMD="python3 -u performance_indicators/perf_ind_variational.py --numFeatures 4 --inputPath performance_indicators/linearly_separable/"
+
+# Run container interactively with wrapper
+./wrap_podman.sh $IMG "$CMD"
+```

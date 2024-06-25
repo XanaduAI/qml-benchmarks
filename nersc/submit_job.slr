@@ -1,65 +1,51 @@
 #!/bin/bash
-#SBATCH -N 1
 #SBATCH -A m4693
 #SBATCH -C cpu
-#SBATCH -q shared -t 2:00:00
-# SBATCH -q debug -t 5:00  # charged for full node
-#SBATCH -J perf_ind_devel
-#SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=6
-#SBATCH --output out1/%j.log
-#SBATCH --licenses=scratch
-#SBATCH --mail-type=begin,end,fail
+#SBATCH -t 0:10:00
+#SBATCH --job-name=qml_ray
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1 # 1 ray worker runtime per node
+#SBATCH --cpus-per-task=256
+#SBATCH --mail-type=ALL
 #SBATCH --mail-user=thomas.germain@xanadu.ai
-# - - - E N D    O F    SLURM    C O M M A N D S
+#SBATCH --output=out/Job-%x.%j.out
+#SBATCH --error=out/Job-%x.%j.err
+
+#-------------------------------------------------------------------
+# SBATCH -q shared 
+# SBATCH --gpus-per-task=4 # 4 GPUs per node
+
 set -u ;  # exit  if you try to use an uninitialized variable
 
-echo 'S:start'
+echo "S:starting"
+echo "S:PWD=$PWD"
 
-numFeatures=15
+################################################################
+# Define image and command
+################################################################
 
-# .... container
-# salloc -q interactive -C cpu -t 4:00:00 -A nstaff
+IMG=tgermain/ubu22-pennylane-ray
+CMD="./run_hyperparam_search.sh"
 
-#IMG=balewski/ubu22-pennylane:p5  # old
-IMG=tgermain/ubu22-pennylane-flax
-echo use image $IMG
+echo "S:IMG=$IMG"
+echo "S:CMD=$CMD"
 
-POD_PUB=/dvs_ro/cfs/cdirs/m4139/qml-benchmarks/nersc/podman/
-#POD_PUB=/dvs_ro/cfs/cdirs/nstaff/balewski/podman_common/  #old
-export PODMANHPC_ADDITIONAL_STORES=$POD_PUB
+################################################################
+# Initialize Ray cluster environment
+################################################################
 
-#.... output sandbox 
-CODE_DIR=`pwd`
-myJob=${SLURM_JOBID}
-outPath=$SCRATCH/tmp_pennylane_jobs/$myJob
-echo outPath=$outPath
-mkdir -p $outPath
-cp -rp performance_indicators *.slr *.sh   $outPath
+# ...
 
+################################################################
+# Run Python scripts in container
+################################################################
 
-#... location of input on CSF
-CFSH=/global/cfs/cdirs/m4693  # for project member
-# CFSH=/pscratch/sd/b/balewski/pennylane_wrk  # for Jan
-BASE_DIR=/qml-benchmarks-devel   # here git has home
-WORK_DIR=$BASE_DIR/nersc
+N=1
 
-#... the task to be executed
-CMD=" python3 -u performance_indicators/perf_ind_variational.py --numFeatures $numFeatures --inputPath performance_indicators/linearly_separable/ "
-#CMD=" python3 -u -c \"import pennylane \"; echo done1  "
-#CMD=" python3 -u -c \"import qml_benchmarks \";  echo done2 host  "
-
-cd $outPath
-# this is hack Jan  does not like  but 'paper' dir is not part of pip-install
-# qml-benchmarks> cp -rp paper /pscratch/sd/b/balewski/tmp_pennylane_jobs
-
-#ls -l $CFSH/$BASE_DIR/paper
-#ln -s $BASE_DIR/paper ..
-
-G=1
-echo 'S:ready to run '; pwd
-srun -n $G  ./wrap_podman.sh $IMG " $CMD " $CFSH $BASE_DIR $WORK_DIR
+echo "S:ready to run"
+srun -n $N ./wrap_podman.sh $IMG "$CMD"
 
 sleep 1
-echo 'S:end '; date
+echo S:done
 
+# EOF
