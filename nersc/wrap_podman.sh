@@ -11,7 +11,7 @@ fi
 
 CFSH=/global/cfs/cdirs/m4693  # CFS home
 REPO_DIR=$CFSH/qml-benchmarks-devel  # qml-benchmark repo
-ROOT_DIR=$REPO_DIR/nersc/local  # to access local python packages
+ROOT_DIR=$REPO_DIR/nersc/root  # to access local python packages
 WORK_DIR=$REPO_DIR/nersc  # to store output files
 
 # Mount /tmp to avoid following error with Ray:

@@ -2,7 +2,7 @@
 #SBATCH -A m4693
 #SBATCH -C cpu
 #SBATCH -t 0:10:00
-#SBATCH --job-name=qml_ray
+#SBATCH --job-name=qml_shared
 #SBATCH -q shared 
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1 # 1 ray worker runtime per node

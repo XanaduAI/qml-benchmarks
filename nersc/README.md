@@ -60,7 +60,7 @@ chmod -R a+rx $POD_PUB   # to allow anyone to use this image
 
 **TODO:** Check and update instructions about migrate for project
 
-## Run Podman
+## Test Podman
 
 ``` bash
 
@@ -69,4 +69,16 @@ CMD="python3 -u performance_indicators/perf_ind_variational.py --numFeatures 4 -
 
 # Run container interactively with wrapper
 ./wrap_podman.sh $IMG "$CMD"
+```
+
+## Run jobs
+
+Run performance indicator (1 model: 100 training steps and prediction)
+``` bash
+sbatch submit_job_shared.str
+```
+
+Run hyperparameter search
+``` bash
+sbatch submit_job_single.str
 ```
