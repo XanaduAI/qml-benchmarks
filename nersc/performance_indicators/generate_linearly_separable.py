@@ -25,7 +25,7 @@ os.makedirs("linearly_separable", exist_ok=True)
 
 n_samples = 300
 
-for n_features in range(2, 21):
+for n_features in range(2, 31):
     margin = 0.02 * n_features
 
     X, y = generate_linearly_separable(n_samples, n_features, margin)
