@@ -77,8 +77,8 @@ def train(model, loss_fn, optimizer, X, y, random_key_generator, convergence_int
     chunked_loss_fn = chunk_loss(loss_fn, model.max_vmap)
 
     def update(params, opt_state, x, y):
-        grads = chunked_grad_fn(params, x, y)
-        loss_val = chunked_loss_fn(params, x, y)
+        grads = chunked_grad_fn(params, x, y)  # TODO: <BATCH>
+        loss_val = chunked_loss_fn(params, x, y)  # TODO: <BATCH>
         updates, opt_state = opt.update(grads, opt_state)
         params = optax.apply_updates(params, updates)
         return params, opt_state, loss_val
@@ -187,11 +187,11 @@ def train_with_catalyst(model, loss_fn, optimizer, X, y, random_key_generator, c
     @qjit
     def update(i, args):
         params, opt_state, X, y, loss_history, key = args
-        X_batch, y_batch = get_batch(X, y, key, batch_size=model.batch_size)
+        X_batch, y_batch = get_batch(X, y, key, batch_size=model.batch_size)  # TODO: <BATCH>
         loss = loss_fn(params, X_batch, y_batch)
         loss_history =  loss_history.at[i].set(loss)
         #backprop is not supported in catalyst yet, falling back on finite diff
-        grads = catalyst.grad(loss_fn, method="fd")(params,X_batch, y_batch)
+        grads = catalyst.grad(loss_fn, method="fd")(params, X_batch, y_batch)
         updates, opt_state = opt.update(grads, opt_state)
         params = optax.apply_updates(params, updates)
         key, subkey = jax.random.split(key)
