@@ -4,6 +4,52 @@
 
 ## Run with Python `venv`
 
+Python venv
+```
+cd /global/common/software/m4693/
+
+module load python
+mkdir -p venv
+python -m venv venv/qml_LK
+source venv/qml_LK/bin/activate
+
+pip install pennylane-lightning
+pip install pennylane-lightning[kokkos]
+
+pip install pennylane-catalyst
+
+cd /global/cfs/cdirs/m4693/qml-benchmarks-devel
+pip install --user .
+```
+
+Start interactive job on CPU node for testing
+``` bash
+salloc -q interactive -C cpu -t 0:30:00 -A m4693
+
+# and execute in this interactive session:
+
+source /global/common/software/m4693/venv/qml_LK/bin/activate
+cd nersc/
+
+# to restrict the number of threads:
+#export OMP_NUM_THREADS=32
+
+python3 single_circuits/demo_variational.py
+```
+
+Stats on interactive CPU node (nid004079)
+```
+lightning.qubit
+  15d -      s
+  20d -  3.3 s
+  21d -  7 s
+  22d - 16 s
+  23d - 35 s
+lightning.kokkos
+  23d -  1 s
+  25d -  5 s (7 s with 32 threads)
+  26d - 34 s
+```
 
 ## Run in `podman` containers 
 

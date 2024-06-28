@@ -4,8 +4,10 @@ https://docs.ray.io/en/latest/ray-core/tasks.html#ray-remote-functions
 https://docs.ray.io/en/latest/ray-core/patterns/limit-running-tasks.html
 '''
 
-import numpy as np
+import argparse
 import time
+
+import numpy as np
 
 import pennylane as qml
 
@@ -14,20 +16,33 @@ import pennylane as qml
 
 from datetime import datetime
 
+def get_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--dryRun', action='store_true', help="print specs only, no circuit execution")
+    args = parser.parse_args()
+    return args
+
+args = get_parser()
+
 def print_elapsed(t1, t2):
     print("%.6f s" % ((t2 - t1).total_seconds()))
 
 # Model parameters available in config originate from circuit_variational.py.
 
 config = {
-    'device': 'lightning.qubit',
+    'device': 'lightning.kokkos',
     #'n_features': 15, 'n_layers': 15, 'n_repeats': 10, 'n_params': 1, 'sample_shape': (15,), 'num_wires': 15, 'num_gates': 1800, 'depth': 267
-    'n_features': 20, 'n_layers': 15, 'n_repeats': 10, 'n_params': 1, 'sample_shape': (20,), 'num_wires': 20, 'num_gates': 2900, 'depth': 310
+    #'n_features': 20, 'n_layers': 15, 'n_repeats': 10, 'n_params': 1, 'sample_shape': (20,), 'num_wires': 20, 'num_gates': 2900, 'depth': 310
     #'n_features': 21, 'n_layers': 15, 'n_repeats': 10, 'n_params': 1, 'sample_shape': (21,), 'num_wires': 21, 'num_gates': 3150, 'depth': 321
     #'n_features': 22, 'n_layers': 15, 'n_repeats': 10, 'n_params': 1, 'sample_shape': (22,), 'num_wires': 22, 'num_gates': 3410, 'depth': 333
     #'n_features': 23, 'n_layers': 15, 'n_repeats': 10, 'n_params': 1, 'sample_shape': (23,), 'num_wires': 23, 'num_gates': 3680, 'depth': 346
     #'n_features': 24, 'n_layers': 15, 'n_repeats': 10, 'n_params': 1, 'sample_shape': (24,), 'num_wires': 24, 'num_gates': 3960, 'depth': 358
-    #'n_features': 25, 'n_layers': 15, 'n_repeats': 10, 'n_params': 1, 'sample_shape': (25,), 'num_wires': 25, 'num_gates': 4250, 'depth': 371
+    'n_features': 25, 'n_layers': 15, 'n_repeats': 10, 'n_params': 1, 'sample_shape': (25,), 'num_wires': 25, 'num_gates': 4250, 'depth': 371
+    #'n_features': 26, 'n_layers': 15, 'n_repeats': 10, 'n_params': 1, 'sample_shape': (26,), 'num_wires': 26, 'num_gates': 4550, 'depth': 383
+    #'n_features': 27, 'n_layers': 15, 'n_repeats': 10, 'n_params': 1, 'sample_shape': (27,), 'num_wires': 27, 'num_gates': 4860, 'depth': 396
+    #'n_features': 28, 'n_layers': 15, 'n_repeats': 10, 'n_params': 1, 'sample_shape': (28,), 'num_wires': 28, 'num_gates': 5180, 'depth': 409
+    #'n_features': 29, 'n_layers': 15, 'n_repeats': 10, 'n_params': 1, 'sample_shape': (29,), 'num_wires': 29, 'num_gates': 5510, 'depth': 423
+    #'n_features': 30, 'n_layers': 15, 'n_repeats': 10, 'n_params': 1, 'sample_shape': (30,), 'num_wires': 30, 'num_gates': 5850, 'depth': 435
 }
 
 n_features = config['n_features']
@@ -55,7 +70,7 @@ class VariationalModel:
 
     def create_circuit(self, x):
 
-        @qml.qnode(dev)
+        @qml.qnode(dev)  # diff_method="adjoint"  # <GRAD>
         def circuit(params, x):
             """
             The variational circuit from the plots. Uses an IQP data embedding.
@@ -74,19 +89,22 @@ X = np.random.rand(*config['sample_shape'])
 model = VariationalModel(n_features, n_layers, n_repeats, X)
 circuit = model.circuit
 
-specs = qml.specs(circuit, expansion_strategy='device')(model.params_, X)
-print({
-    'n_features': n_features,
-    'n_layers': model.n_layers,
-    'n_repeats': model.repeats,
-    'n_params': len(model.params_),
-    'sample_shape': X.shape,
-    'device_name': specs['device_name'],
-    'gradient_fn': specs['gradient_fn'],
-    'num_wires': specs['resources'].num_wires,
-    'num_gates': specs['resources'].num_gates,
-    'depth': specs['resources'].depth,
-    })
+if args.dryRun:
+    print('inspecting circuit()')
+    specs = qml.specs(circuit, expansion_strategy='device')(model.params_, X)
+    print({
+        'n_features': n_features,
+        'n_layers': model.n_layers,
+        'n_repeats': model.repeats,
+        'n_params': len(model.params_),
+        'sample_shape': X.shape,
+        'device_name': specs['device_name'],
+        'gradient_fn': specs['gradient_fn'],
+        'num_wires': specs['resources'].num_wires,
+        'num_gates': specs['resources'].num_gates,
+        'depth': specs['resources'].depth,
+        })
+    exit(0)
 
 print('running circuit()')
 t_start = datetime.now()
