@@ -60,7 +60,7 @@ lightning-kokkos with GPU
 - https://docs.pennylane.ai/projects/lightning/en/stable/lightning_kokkos/installation.html
 - https://github.com/PennyLaneAI/lightning-on-hpc/blob/main/DataCollection/distributed/LUMI_LKOKKOS_VQE/README.md- 
 
-```
+``` bash
 cd /global/common/software/m4693/
 
 module load cudatoolkit
@@ -78,6 +78,7 @@ cd pennylane-lightning
 git checkout v0.36.0
 
 pip install -r requirements.txt
+pip install ray
 
 # install lightning-qubit as prerequisite
 CXX=$(which CC) python -m pip install -e . --verbose
@@ -85,7 +86,7 @@ CXX=$(which CC) python -m pip install -e . --verbose
 CXX=$(which CC) CMAKE_ARGS="-DKokkos_ENABLE_OPENMP=ON -DKokkos_ENABLE_CUDA=ON -DKokkos_ARCH_AMPERE80:BOOL=ON -DCMAKE_CXX_COMPILER=$(which CC)" PL_BACKEND="lightning_kokkos" python -m pip install . --verbose
 ```
 
-Start interactive job on CPU node for testing
+Start interactive job on GPU node for testing
 ``` bash
 salloc -q interactive -C gpu -t 0:30:00 -A m4693
 
@@ -95,7 +96,7 @@ source /global/common/software/m4693/venv/qml_LK_GPU/bin/activate
 cd nersc/
 
 # to restrict the number of threads:
-export OMP_NUM_THREADS=1
+#export OMP_NUM_THREADS=1
 
 python3 single_circuits/demo_variational.py -n 25
 ```
@@ -108,6 +109,38 @@ lightning.kokkos
   26d -  6 s
   27d - 12 s
   28d - 25 s
+```
+
+Run batch of circuits in parallel
+``` bash
+# @ray.remote(num_gpus=0.5) is same than num_gpus=1
+time python3 single_circuits/batch_variational.py -n 26 -s 4
+
+# move task to background and monitor GPU usage
+nvidia-smi
+```
+
+Stats on 1 interactive GPU node
+```
+ray_init in 7 to 15 s
+> How long does 1 circuit run on its GPU?
+25d features
+  samples run_time  run_time/sample*gpu
+  -                 3
+ 16       32        8
+26d features
+  samples run_time  run_time/sample*gpu
+  -                 6
+  4       10        10
+  8       23        11
+ 16       39        10
+ 32       77        10
+27d features
+  samples run_time  run_time/sample*gpu
+  -                 12
+  4       16        16
+  8       31        15
+> Overhead of 4 s per circuit with Ray
 ```
 
 ## Run in `podman` containers 
