@@ -27,6 +27,7 @@ def get_parser():
     parser.add_argument("--inputPath", default='linearly_separable/', help='input data location')
     parser.add_argument('-n', '--numFeatures', type=int, default=2, help="dataset dimension ")
     parser.add_argument('-m', '--model', help="model: IQPVariationalClassifier, QuantumMetricLearner")
+    parser.add_argument('-d', '--dryRun', action='store_true', help="print specs only, no circuit execution")
 
     args = parser.parse_args()
 
@@ -135,7 +136,11 @@ if __name__ == "__main__":
     specs = qml.specs(circuit, expansion_strategy='device')(model.params_, X)
     #pprint(specs)
     print({
-        'num_features': args.numFeatures,
+        'n_features': args.numFeatures,
+        'n_layers': model.n_layers,
+        'n_repeats': model.repeats,
+        'n_params': len(model.params_),
+        'sample_shape': X.shape,
         'device_name': specs['device_name'],
         'gradient_fn': specs['gradient_fn'],
         'num_wires': specs['resources'].num_wires,
@@ -143,6 +148,9 @@ if __name__ == "__main__":
         'depth': specs['resources'].depth,
         })
     
+    if args.dryRun:
+       exit(0) 
+
     print('M:executing circuit')
     t_start = datetime.now()
 
@@ -154,6 +162,8 @@ if __name__ == "__main__":
 
     t_end = datetime.now()
     print_elapsed(t_start, t_end)
+
+    # {'n_features': 15, 'n_layers': 15, 'n_params': 1, 'sample_shape': (15,)}
 
     # {'num_features': 15, 'num_wires': 15, 'num_gates': 1800, 'depth': 267}
     # {'num_features': 20, 'num_wires': 20, 'num_gates': 2900, 'depth': 310}

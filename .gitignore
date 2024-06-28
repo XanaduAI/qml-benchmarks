@@ -188,3 +188,4 @@ linearly_separable/
 nersc/out
 nersc/results
 nersc/root
+nersc/*/linearly_separable
