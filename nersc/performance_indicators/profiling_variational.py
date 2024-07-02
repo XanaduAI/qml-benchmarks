@@ -47,16 +47,19 @@ if __name__ == "__main__":
     from qml_benchmarks.models.iqp_variational import IQPVariationalClassifier as Model
     #implementation attributes of model
     use_jax = True
-    vmap = True
+    vmap = False
     jit = True
     model_settings = {'use_jax': use_jax, 'vmap': vmap, 'jit': jit}
 
     max_steps = 2 #the number of gradient descent steps to use to estimate the step time
-    profile_name = 'jax'  #a name for the performance indicator used for naming files
+    profile_name = 'jax_no_vmap_lax'  #a name for the performance indicator used for naming files
+    
 
     #################################
 
     n_features = args.numFeatures
+
+    print('NUM FEATURES: ' + str(n_features))
 
     model_name = Model().__class__.__name__
 
@@ -77,7 +80,7 @@ if __name__ == "__main__":
     X_train, y_train = read_data(inpF1)
 
     jax.clear_caches()
-    model = Model(**hyperparams)
+    model = Model(**hyperparams, max_steps=max_steps)
     model.fit(X_train, y_train)
 
     #get step times from loss history data
