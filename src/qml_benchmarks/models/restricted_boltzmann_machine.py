@@ -92,7 +92,7 @@ class RestrictedBoltzmannMachine():
         carry, configs = jax.lax.scan(self.gibbs_step, carry, jnp.arange(n_samples))
         return configs
 
-    def sample_visible(self, n_samples):
+    def sample(self, n_samples):
         """
         sample only the visible units starting from a random configuration.
         """
