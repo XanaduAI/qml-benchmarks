@@ -106,6 +106,7 @@ class RestrictedBoltzmannMachine():
         Fit the parameters using contrastive divergence
         """
         self.initialize(X.shape[-1])
+        X = jnp.array(X, dtype=int)
 
         # batch the relevant functions
         batched_gibbs_sample = jax.vmap(self.gibbs_sample, in_axes=(None, 0, None, 0))
