@@ -44,7 +44,7 @@ class RestrictedBoltzmannMachine():
         self.params_ = None
         self.n_visible_ = None
 
-        self.gibbs_step = jax.jit(self.gibbs_step)
+        self.gibbs_step = jax.jit(self.gibbs_step) if jit else self.gibbs_step
 
     def generate_key(self):
         return jax.random.PRNGKey(self.rng.integers(1000000))

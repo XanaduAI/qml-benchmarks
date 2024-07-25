@@ -67,7 +67,7 @@ class EnergyBasedModel():
         self.params_ = None
         self.n_visible_ = None
 
-        self.mcmc_step = jax.jit(self.mcmc_step)
+        self.mcmc_step = jax.jit(self.mcmc_step) if jit else self.mcmc_step
 
     def generate_key(self):
         return jax.random.PRNGKey(self.rng.integers(1000000))
