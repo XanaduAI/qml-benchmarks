@@ -99,7 +99,7 @@ class RestrictedBoltzmannMachine():
         key = self.generate_key()
         x_init = jnp.array(jax.random.bernoulli(key, p=0.5, shape=(self.n_visible_,)), dtype=int)
         samples = self.gibbs_sample(self.params_, x_init, n_samples, self.generate_key())
-        return samples[0]
+        return jnp.array(samples[0])
 
     def fit(self, X):
         """
