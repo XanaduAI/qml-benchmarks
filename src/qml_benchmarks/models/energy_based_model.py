@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Energy-based models for generative modeling."""
-
 import numpy as np
 import jax
 import jax.numpy as jnp
@@ -23,15 +21,14 @@ import copy
 import flax.linen as nn
 
 class MLP(nn.Module):
-    """
-    Simple multilayer perceptron neural network used for the energy model.
-    """
+    "multilayer perceptron in flax"
     @nn.compact
     def __call__(self, x):
-        x = nn.Dense(16)(x)
+        x = nn.Dense(8)(x)
+        x = nn.tanh(x)
+        x = nn.Dense(4)(x)
         x = nn.tanh(x)
         x = nn.Dense(1)(x)
-        x = nn.tanh(x)
         return x
 
 class EnergyBasedModel():
@@ -54,6 +51,7 @@ class EnergyBasedModel():
 
     def __init__(self, energy_model=MLP, learning_rate=0.001, cdiv_steps=1, jit=True, batch_size=32,
                  max_steps=200, convergence_interval=None, random_state=42):
+        self.energy_model = energy_model()
         self.learning_rate = learning_rate
         self.random_state = random_state
         self.rng = np.random.default_rng(random_state)
@@ -70,7 +68,6 @@ class EnergyBasedModel():
         self.n_visible_ = None
 
         self.mcmc_step = jax.jit(self.mcmc_step)
-        self.energy_model = energy_model()
 
     def generate_key(self):
         return jax.random.PRNGKey(self.rng.integers(1000000))
@@ -104,8 +101,8 @@ class EnergyBasedModel():
         flip_config = jnp.zeros(self.n_visible_, dtype=int)
         flip_config = flip_config.at[flip_idx].set(1)
         x_flip = jnp.array((x + flip_config) % 2)
-        en = self.energy(params, x)
-        en_flip = self.energy(params, x_flip)
+        en = self.energy(params, jnp.expand_dims(x, 0))[0]
+        en_flip = self.energy(params, jnp.expand_dims(x_flip, 0))[0]
         accept_ratio = jnp.exp(-en_flip) / jnp.exp(-en)
         accept = jnp.array(jax.random.bernoulli(key2, accept_ratio), dtype=int)[0]
         x_new = accept * x_flip + (1 - accept) * x
@@ -135,12 +132,13 @@ class EnergyBasedModel():
         """
         Fit the parameters using contrastive divergence
         """
-        self.initialize(X.shape[-1])
+        self.initialize(X.shape[1])
         X = jnp.array(X, dtype=int)
 
         # batch the relevant functions
         batched_mcmc_sample = jax.vmap(self.mcmc_sample, in_axes=(None, 0, None, 0))
-        batched_energy = jax.vmap(self.energy, in_axes=(None, 0))
+
+        #         batched_energy = jax.vmap(self.energy, in_axes=(None, 0))
 
         def c_div_loss(params, X, y, key):
             """
@@ -163,7 +161,7 @@ class EnergyBasedModel():
             x1 = configs[:, -1]
 
             # taking the gradient of this loss is equivalent to the CD-k update
-            loss = batched_energy(params, x0) - batched_energy(params, x1)
+            loss = self.energy(params, x0) - self.energy(params, x1)
 
             return jnp.mean(loss)
 
