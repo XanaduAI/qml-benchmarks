@@ -138,8 +138,6 @@ class EnergyBasedModel():
         # batch the relevant functions
         batched_mcmc_sample = jax.vmap(self.mcmc_sample, in_axes=(None, 0, None, 0))
 
-        #         batched_energy = jax.vmap(self.energy, in_axes=(None, 0))
-
         def c_div_loss(params, X, y, key):
             """
             contrastive divergence loss
