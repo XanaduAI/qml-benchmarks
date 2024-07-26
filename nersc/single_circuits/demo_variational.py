@@ -19,6 +19,7 @@ from datetime import datetime
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('-n', '--numFeatures', type=int, default=15, help="dataset dimension ")
+    parser.add_argument('-q', '--device', default='lightning.qubit', help="quantum device e.g. lightning.qubit")
     parser.add_argument('-d', '--dryRun', action='store_true', help="print specs only, no circuit execution")
     args = parser.parse_args()
     return args
@@ -46,7 +47,7 @@ catalog = {
 
 config = dict(catalog[args.numFeatures])
 
-config['device'] = 'lightning.kokkos'
+config['device'] = args.device
 
 n_features = config['n_features']
 n_layers = config['n_layers']
