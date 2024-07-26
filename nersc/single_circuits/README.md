@@ -34,9 +34,8 @@ source /global/common/software/m4693/venv/qml_LK/bin/activate
 cd nersc/
 
 # to restrict the number of threads:
-#export OMP_NUM_THREADS=32
-
-python3 single_circuits/demo_variational.py -n 25
+export OMP_NUM_THREADS=32
+python3 single_circuits/demo_variational.py -q lightning.qubit -n 25
 ```
 
 Stats on interactive CPU node (nid004079)
@@ -64,10 +63,9 @@ lightning.qubit
 lightning.kokkos (with 32 threads)
          numpy  qml.np  jacobian
                no-grad      grad
-  15 -    n.a.  0.17 s     /!\ s  <-----
-  23 -       -   1.5 s         s
-  25 -       -     7 s         s
-  26 -       -    34 s         s  <-----
+  15 -       -  0.31 s     0.9 s
+  23 -       -    13 s      25 s
+  25 -     5 s    90 s         s
 ```
 
 ### `lightning-kokkos` from source with CUDA
@@ -115,7 +113,7 @@ cd nersc/
 # to restrict the number of threads:
 #export OMP_NUM_THREADS=1
 
-python3 single_circuits/demo_variational.py -n 25
+python3 single_circuits/demo_variational.py -q lightning.kokkos -n 25
 ```
 
 Stats on interactive GPU node (nid200381)
@@ -126,6 +124,18 @@ lightning.kokkos
   26 -  6 s
   27 - 12 s
   28 - 25 s
+
+> Benchmarking numpy/qml.numpy, gradients
+> no-grad: qml.np.array(requires_grad=True) but no jacobian requested
+lightning.kokkos
+         numpy  qml.np  jacobian
+               no-grad      grad
+  22 -       s     2 s       5 s
+  23 -       s     4 s       9 s
+  25 -     3 s    18 s      37 s
+  26 -     6 s
+  27 -    12 s
+  28 -    25 s
 ```
 
 Run batch of circuits in parallel

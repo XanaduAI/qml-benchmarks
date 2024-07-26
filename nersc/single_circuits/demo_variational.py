@@ -53,6 +53,7 @@ catalog = {
 config = dict(catalog[args.numFeatures])
 
 config['device'] = args.device
+print('device:', args.device)
 
 n_features = config['n_features']
 n_layers = config['n_layers']
@@ -79,7 +80,7 @@ class VariationalModel:
 
     def create_circuit(self, x):
 
-        @qml.qnode(dev)  # diff_method="adjoint"  # <GRAD>
+        @qml.qnode(dev, diff_method="adjoint")  # <GRAD>
         def circuit(params, x):
             """
             The variational circuit from the plots. Uses an IQP data embedding.
