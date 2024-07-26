@@ -20,15 +20,20 @@ from datetime import datetime
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('-n', '--numFeatures', type=int, default=15, help="dataset dimension ")
-    parser.add_argument('-s', '--numSamples', type=int, default=4, help="number of samples (in one batch)")
+    parser.add_argument('-s', '--numSamples', type=int, default=4, help="number of sample circuits (in one batch)")
+    parser.add_argument('-r', '--numRuns', type=int, default=1, help="number of circuit run sequentially within one ray job")
     parser.add_argument('-d', '--dryRun', action='store_true', help="print specs only, no circuit execution")
     args = parser.parse_args()
     return args
 
 args = get_parser()
 
-def print_elapsed(t1, t2):
-    print("%.6f s" % ((t2 - t1).total_seconds()))
+def print_elapsed(name, t1, t2):
+    print("%s: %.3 s" % (name, (t2 - t1).total_seconds()))
+
+def print_per_circuit(name, t1, t2, n_circuits, n_gpus=4):
+    seconds = (t2 - t1).total_seconds() / n_circuits * n_gpus
+    print("%s: %.3f s" % (name, seconds))
 
 # Model parameters available in config originate from circuit_variational.py.
 catalog = {
@@ -50,6 +55,7 @@ config = dict(catalog[args.numFeatures])
 
 config['device'] = 'lightning.kokkos'
 config['n_samples'] = args.numSamples
+config['n_circ_per_job'] = args.numRuns
 
 n_features = config['n_features']
 n_layers = config['n_layers']
@@ -98,7 +104,8 @@ if args.dryRun:
     print('inspecting circuit()')
     dev = qml.device(config['device'], wires=n_features)
     circuit = model.create_circuit(dev, x)
-    specs = qml.specs(circuit, expansion_strategy='device')(model.params_, x)
+    specs = qml.specs(circuit, expansion_strategy='device')(
+        model.params_, x[np.newaxis, :])
     print({
         'n_features': n_features,
         'n_layers': model.n_layers,
@@ -114,31 +121,45 @@ if args.dryRun:
     exit(0)
 
 @ray.remote(num_gpus=1)
-def exec_circuit(model, x):
+def exec_circuit(model, x, n_circuits):
     # device creation must be in remote function,
     # because Lightning is not pickable
+    t_start = datetime.now()
     dev = qml.device(config['device'], wires=n_features)
-    circuit = model.create_circuit(dev, x)
-    expval = circuit(model.params_, x)
-    # TODO: activate gradients <GRAD>
-    #grads = qml.jacobian(circuit)(model.params_, x)
+    t_end = datetime.now()
+    print_elapsed('create_dev', t_start, t_end)
+    t_start = datetime.now()
+    circuit = model.create_circuit(dev, x[:, 0])
+    t_end = datetime.now()
+    print_elapsed('create_circuit', t_start, t_end)
+
+    for i in range(n_circuits):
+        expval = circuit(model.params_, x[:, i])
+        # TODO: activate gradients <GRAD>
+        #grads = qml.jacobian(circuit)(model.params_, x)
+
     return expval
 
 print('ray init()')
 t_start = datetime.now()
 ray.init()
 t_end = datetime.now()
-print_elapsed(t_start, t_end)
+print_elapsed('ray_init', t_start, t_end)
 
 print('running circuit()')
 t_start = datetime.now()
 
+n_cpj = config['n_circ_per_job']
+n_jobs = config['n_samples'] // n_cpj
+print('n_jobs:', n_jobs)
 result_refs = []
-for i in range(config['n_samples']):
-    result_refs.append(exec_circuit.remote(model, X[:, i]))
+for i in range(n_jobs):
+    result_refs.append(
+        exec_circuit.remote(model, X[:, i * n_cpj: (i + 1) * n_cpj], n_cpj))
 
 res = ray.get(result_refs)
 
 t_end = datetime.now()
 #print(res)
-print_elapsed(t_start, t_end)
+print_elapsed('total', t_start, t_end)
+print_per_circuit('per_circuit', t_start, t_end, config['n_samples'])

@@ -42,15 +42,15 @@ python3 single_circuits/demo_variational.py -n 25
 Stats on interactive CPU node (nid004079)
 ```
 lightning.qubit
-  15d -      s
-  20d -  3.3 s
-  21d -  7 s
-  22d - 16 s
-  23d - 35 s
+  15 -      s
+  20 -  3.3 s
+  21 -  7 s
+  22 - 16 s
+  23 - 35 s
 lightning.kokkos
-  23d -  1 s
-  25d -  5 s (7 s with 32 threads)
-  26d - 34 s
+  23 -  1 s
+  25 -  5 s (7 s with 32 threads)
+  26 - 34 s
 ```
 
 ### `lightning-kokkos` from source with CUDA
@@ -104,16 +104,16 @@ python3 single_circuits/demo_variational.py -n 25
 Stats on interactive GPU node (nid200381)
 ```
 lightning.kokkos
-  23d -    s
-  25d -  3 s
-  26d -  6 s
-  27d - 12 s
-  28d - 25 s
+  23 -    s
+  25 -  3 s
+  26 -  6 s
+  27 - 12 s
+  28 - 25 s
 ```
 
 Run batch of circuits in parallel
 ``` bash
-# @ray.remote(num_gpus=0.5) is same than num_gpus=1
+# @ray.remote(num_gpus=0.5) has same runtime than num_gpus=1
 time python3 single_circuits/batch_variational.py -n 26 -s 4
 
 # move task to background and monitor GPU usage
@@ -124,23 +124,39 @@ Stats on 1 interactive GPU node
 ```
 ray_init in 7 to 15 s
 > How long does 1 circuit run on its GPU?
-25d features
+25 features
   samples run_time  run_time/sample*gpu
   -                 3
  16       32        8
-26d features
+26 features
   samples run_time  run_time/sample*gpu
   -                 6
   4       10        10
   8       23        11
  16       39        10
  32       77        10
-27d features
+> create dev 1.8 s
+> create circuit < 1 ms
+27 features
   samples run_time  run_time/sample*gpu
   -                 12
   4       16        16
   8       31        15
 > Overhead of 4 s per circuit with Ray
+> This includes creating dev + circuit
+
+30 features
+  samples run_time  run_time/sample*gpu
+  -                 n.a.
+  4       120       120
+> create dev 3.3 s
+> create circuit < 1 ms
+
+> Run r circuits sequentially within 1 ray job:
+batch_variational.py -n 26 -s 32 -r 8
+  total: 48.949 s
+  per_circuit: 6.119 s
+> per circuit runtime is equivalent to run w/o ray
 ```
 
 ## Run in `podman` containers 
