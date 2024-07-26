@@ -11,8 +11,7 @@ import numpy as np
 
 import pennylane as qml
 
-# TODO: fix hanging run with qml.np <GRAD>
-#from pennylane import numpy as np
+from pennylane import numpy as np  # <GRAD>
 
 from datetime import datetime
 
@@ -20,6 +19,7 @@ def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('-n', '--numFeatures', type=int, default=15, help="dataset dimension ")
     parser.add_argument('-q', '--device', default='lightning.qubit', help="quantum device e.g. lightning.qubit")
+    parser.add_argument('-g', '--gradients', action='store_true', help="request gradients wrt. all weights")
     parser.add_argument('-d', '--dryRun', action='store_true', help="print specs only, no circuit execution")
     args = parser.parse_args()
     return args
@@ -31,7 +31,12 @@ def print_elapsed(t1, t2):
 
 # Model parameters available in config originate from circuit_variational.py.
 catalog = {
+    10: {'n_features': 10, 'n_layers': 15, 'n_repeats': 10, 'n_params': 1, 'sample_shape': (10,), 'num_wires': 10, 'num_gates': 950, 'depth': 198},
     15: {'n_features': 15, 'n_layers': 15, 'n_repeats': 10, 'n_params': 1, 'sample_shape': (15,), 'num_wires': 15, 'num_gates': 1800, 'depth': 267},
+    16: {'n_features': 16, 'n_layers': 15, 'n_repeats': 10, 'n_params': 1, 'sample_shape': (16,), 'num_wires': 16, 'num_gates': 2000, 'depth': 281},
+    17: {'n_features': 17, 'n_layers': 15, 'n_repeats': 10, 'n_params': 1, 'sample_shape': (17,), 'num_wires': 17, 'num_gates': 2210, 'depth': 282},
+    18: {'n_features': 18, 'n_layers': 15, 'n_repeats': 10, 'n_params': 1, 'sample_shape': (18,), 'num_wires': 18, 'num_gates': 2430, 'depth': 289},
+    19: {'n_features': 19, 'n_layers': 15, 'n_repeats': 10, 'n_params': 1, 'sample_shape': (19,), 'num_wires': 19, 'num_gates': 2660, 'depth': 299},
     20: {'n_features': 20, 'n_layers': 15, 'n_repeats': 10, 'n_params': 1, 'sample_shape': (20,), 'num_wires': 20, 'num_gates': 2900, 'depth': 310},
     21: {'n_features': 21, 'n_layers': 15, 'n_repeats': 10, 'n_params': 1, 'sample_shape': (21,), 'num_wires': 21, 'num_gates': 3150, 'depth': 321},
     22: {'n_features': 22, 'n_layers': 15, 'n_repeats': 10, 'n_params': 1, 'sample_shape': (22,), 'num_wires': 22, 'num_gates': 3410, 'depth': 333},
@@ -68,7 +73,7 @@ class VariationalModel:
 
     def initialize_params(self):
         weights = 2 * np.pi * np.random.uniform(size=(self.n_layers, self.n_qubits_, 3))
-        weights = np.array(weights)  # requires_grad=True  # <GRAD>
+        weights = np.array(weights, requires_grad=True)  # <GRAD>
 
         self.params_ = {"weights": weights}
 
@@ -100,7 +105,7 @@ if args.dryRun:
         'n_features': n_features,
         'n_layers': model.n_layers,
         'n_repeats': model.repeats,
-        'n_params': len(model.params_),
+        'n_params': model.params_["weights"].size,
         'sample_shape': X.shape,
         'device_name': specs['device_name'],
         'gradient_fn': specs['gradient_fn'],
@@ -113,8 +118,8 @@ if args.dryRun:
 print('running circuit()')
 t_start = datetime.now()
 expval = circuit(model.params_, X)
-# TODO: activate gradients <GRAD>
-#grads = qml.jacobian(circuit)(model.params_, X)
+if args.gradients:
+    grads = qml.jacobian(circuit)(model.params_, X)
 t_end = datetime.now()
 
 #print(expval)

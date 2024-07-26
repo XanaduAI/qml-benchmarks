@@ -41,6 +41,7 @@ python3 single_circuits/demo_variational.py -n 25
 
 Stats on interactive CPU node (nid004079)
 ```
+> Weights as native numpy arrays
 lightning.qubit
   15 -      s
   20 -  3.3 s
@@ -51,6 +52,22 @@ lightning.kokkos
   23 -  1 s
   25 -  5 s (7 s with 32 threads)
   26 - 34 s
+
+> Benchmarking numpy/qml.numpy, gradients
+> no-grad: qml.np.array(requires_grad=True) but no jacobian requested
+lightning.qubit
+         numpy  qml.np  jacobian
+               no-grad      grad
+  15 -  0.17 s   1.0 s     2.4 s
+  16 -           2.0 s     4.0 s
+  17 -           3.5 s     7.0 s
+lightning.kokkos (with 32 threads)
+         numpy  qml.np  jacobian
+               no-grad      grad
+  15 -    n.a.  0.17 s     /!\ s  <-----
+  23 -       -   1.5 s         s
+  25 -       -     7 s         s
+  26 -       -    34 s         s  <-----
 ```
 
 ### `lightning-kokkos` from source with CUDA
