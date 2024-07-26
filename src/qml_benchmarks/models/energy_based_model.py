@@ -44,13 +44,12 @@ class EnergyBasedModel():
         batch_size (int): Size of batches used for computing parameter updates
         max_steps (int): Maximum number of training steps.
         convergence_interval (int or None): The number of loss values to consider to decide convergence.
-            If None, training runs until the maximum number of steps. Recommoneded to set to None since
-            CD-k does not follow the gradient of a fucntion.
+            If None, training runs until the maximum number of steps.
         random_state (int): Seed used for pseudorandom number generation.
     """
 
     def __init__(self, energy_model=MLP, learning_rate=0.001, cdiv_steps=1, jit=True, batch_size=32,
-                 max_steps=200, convergence_interval=None, random_state=42):
+                 max_steps=200, convergence_interval=200, random_state=42):
         self.energy_model = energy_model()
         self.learning_rate = learning_rate
         self.random_state = random_state

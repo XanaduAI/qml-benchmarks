@@ -18,14 +18,13 @@ class RestrictedBoltzmannMachine():
         max_steps (int): Maximum number of training steps.
         reg (float): The L2 regularisation strength (larger implies stronger)
         convergence_interval (int or None): The number of loss values to consider to decide convergence.
-            If None, training runs until the maximum number of steps. Recommoneded to set to None since
-            CD-k does not follow the gradient of a fucntion.
+            If None, training runs until the maximum number of steps.
         random_state (int): Seed used for pseudorandom number generation.
 
     """
 
     def __init__(self, n_hidden, learning_rate=0.001, cdiv_steps=1, jit=True, batch_size=32,
-                 max_steps=200, reg=0.0, convergence_interval=None, random_state=42):
+                 max_steps=200, reg=0.0, convergence_interval=200, random_state=42):
 
         self.n_hidden = n_hidden
         self.learning_rate = learning_rate
