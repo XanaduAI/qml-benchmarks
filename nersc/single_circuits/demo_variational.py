@@ -10,6 +10,7 @@ import time
 import numpy as np
 
 import pennylane as qml
+import catalyst
 
 from pennylane import numpy as np  # <GRAD>
 
@@ -20,6 +21,7 @@ def get_parser():
     parser.add_argument('-n', '--numFeatures', type=int, default=15, help="dataset dimension ")
     parser.add_argument('-q', '--device', default='lightning.qubit', help="quantum device e.g. lightning.qubit")
     parser.add_argument('-g', '--gradients', action='store_true', help="request gradients wrt. all weights")
+    parser.add_argument('-j', '--jit', action='store_true', help="JIT with Catalyst")
     parser.add_argument('-d', '--dryRun', action='store_true', help="print specs only, no circuit execution")
     args = parser.parse_args()
     return args
@@ -80,17 +82,31 @@ class VariationalModel:
 
     def create_circuit(self, x):
 
-        @qml.qnode(dev, diff_method="adjoint")  # <GRAD>
-        def circuit(params, x):
-            """
-            The variational circuit from the plots. Uses an IQP data embedding.
-            We use the same observable as in the plots.
-            """
-            qml.IQPEmbedding(x, wires=range(self.n_qubits_), n_repeats=self.repeats)
-            qml.StronglyEntanglingLayers(
-                params["weights"], wires=range(self.n_qubits_), imprimitive=qml.CZ
-            )
-            return qml.expval(qml.PauliZ(0) @ qml.PauliZ(1))
+        if args.jit:  # TODO: use mock qjit (?)
+            @qml.qjit
+            @qml.qnode(dev, diff_method="adjoint")  # <GRAD>
+            def circuit(params, x):
+                """
+                The variational circuit from the plots. Uses an IQP data embedding.
+                We use the same observable as in the plots.
+                """
+                qml.IQPEmbedding(x, wires=range(self.n_qubits_), n_repeats=self.repeats)
+                qml.StronglyEntanglingLayers(
+                    params["weights"], wires=range(self.n_qubits_), imprimitive=qml.CZ
+                )
+                return qml.expval(qml.PauliZ(0) @ qml.PauliZ(1))
+        else:
+            @qml.qnode(dev, diff_method="adjoint")  # <GRAD>
+            def circuit(params, x):
+                """
+                The variational circuit from the plots. Uses an IQP data embedding.
+                We use the same observable as in the plots.
+                """
+                qml.IQPEmbedding(x, wires=range(self.n_qubits_), n_repeats=self.repeats)
+                qml.StronglyEntanglingLayers(
+                    params["weights"], wires=range(self.n_qubits_), imprimitive=qml.CZ
+                )
+                return qml.expval(qml.PauliZ(0) @ qml.PauliZ(1))
         
         self.circuit = circuit
 
@@ -117,12 +133,17 @@ if args.dryRun:
     exit(0)
 
 print('running circuit()')
+
+# First run. Includes compilation if JIT.
+t_start = datetime.now()
+expval = circuit(model.params_, X)
+t_end = datetime.now()
+print_elapsed(t_start, t_end)
+
 t_start = datetime.now()
 expval = circuit(model.params_, X)
 if args.gradients:
     grads = qml.jacobian(circuit)(model.params_, X)
 t_end = datetime.now()
-
 #print(expval)
-
 print_elapsed(t_start, t_end)

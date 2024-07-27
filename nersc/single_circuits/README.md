@@ -55,17 +55,20 @@ lightning.kokkos
 > Benchmarking numpy/qml.numpy, gradients
 > no-grad: qml.np.array(requires_grad=True) but no jacobian requested
 lightning.qubit
-         numpy  qml.np  jacobian
-               no-grad      grad
-  15 -  0.17 s   1.0 s     2.4 s
-  16 -           2.0 s     4.0 s
-  17 -           3.5 s     7.0 s
+         numpy  qml.np  jacobian    qjit     qjit    qjit
+               no-grad      grad    comp  no-grad    grad
+  15 -  0.17 s   1.0 s     2.4 s    10 s   0.08 s   error
+  16 -           2.0 s     4.0 s    11 s   0.15 s
+  17 -           3.5 s     7.0 s    13 s   0.37 s
+  20 -                              20 s   3.7  s
+> NotImplementedError: Converting dtype('O') to a ctypes type
 lightning.kokkos (with 32 threads)
-         numpy  qml.np  jacobian
-               no-grad      grad
+         numpy  qml.np  jacobian    qjit     qjit
+               no-grad      grad    comp  no-grad
   15 -       -  0.31 s     0.9 s
-  23 -       -    13 s      25 s
-  25 -     5 s    90 s         s
+  20 - 
+  23 -       -    13 s      25 s    23 s    1.3 s
+  25 -     5 s    90 s         -    31 s    7.7 s
 ```
 
 ### `lightning-kokkos` from source with CUDA
@@ -94,6 +97,8 @@ git checkout v0.36.0
 
 pip install -r requirements.txt
 pip install ray
+
+# pip install pennylane-catalyst  # [added later]
 
 # install lightning-qubit as prerequisite
 CXX=$(which CC) python -m pip install -e . --verbose
