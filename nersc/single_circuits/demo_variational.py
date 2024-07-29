@@ -52,6 +52,7 @@ if args.numpy:
     import numpy as np
 else:
     from pennylane import numpy as np  # <GRAD>
+    from jax import numpy as jnp  # <INTERFACE>
 
 if args.jit:
     qjit = qml.qjit
@@ -60,6 +61,15 @@ else:
         def wrapper(*args, **kwargs):
             return func(*args, **kwargs)
         return wrapper
+
+if args.gradients:
+    interface = "autograd"  # <INTERFACE>
+    diff_method = "adjoint"
+    grad_on_execution = False
+else:
+    interface = None
+    diff_method = None
+    grad_on_execution = False
 
 config = dict(catalog[args.numFeatures])
 
@@ -89,12 +99,14 @@ class VariationalModel:
             weights = np.array(weights)  # <GRAD>
         else:
             weights = np.array(weights, requires_grad=True)  # <GRAD>
+            #weights = jnp.array(weights)  # <INTERFACE>
         self.params_ = {"weights": weights}
 
     def create_circuit(self, x):
 
         @qjit
-        @qml.qnode(dev, diff_method="adjoint")  # <GRAD>
+        @qml.qnode(dev, interface=interface, diff_method=diff_method, 
+                   grad_on_execution=grad_on_execution)  # <GRAD> <INTERFACE>
         def circuit(params, x):
             """
             The variational circuit from the plots. Uses an IQP data embedding.
@@ -141,7 +153,7 @@ print_elapsed(t_start, t_end)
 t_start = datetime.now()
 expval = circuit(model.params_, X)
 if args.gradients:
-    grads = qml.jacobian(circuit)(model.params_, X)
+    grads = qml.jacobian(circuit)(model.params_, X)  # <INTERFACE>
 t_end = datetime.now()
 #print(expval)
 print_elapsed(t_start, t_end)
