@@ -63,8 +63,8 @@ lightning.qubit
   20 -                              20 s   3.7  s
 > NotImplementedError: Converting dtype('O') to a ctypes type
 lightning.kokkos (with 32 threads)
-         numpy  qml.np  jacobian    qjit     qjit
-               no-grad      grad    comp  no-grad
+         numpy  qml.np  jacobian    qjit     qjit    qjit
+               no-grad      grad    comp  no-grad    grad
   15 -       -  0.31 s     0.9 s
   20 - 
   23 -       -    13 s      25 s    23 s    1.3 s
@@ -133,14 +133,15 @@ lightning.kokkos
 > Benchmarking numpy/qml.numpy, gradients
 > no-grad: qml.np.array(requires_grad=True) but no jacobian requested
 lightning.kokkos
-         numpy  qml.np  jacobian
-               no-grad      grad
-  22 -       s     2 s       5 s
+         numpy  qml.np  jacobian    qjit     qjit    qjit
+               no-grad      grad    comp  no-grad    grad
+  22 -       s     2 s       5 s    20 s      1 s
   23 -       s     4 s       9 s
-  25 -     3 s    18 s      37 s
+  25 -     3 s    18 s      37 s    50 s     24 s
   26 -     6 s
   27 -    12 s
   28 -    25 s
+> Kokkos::Cuda ERROR: Failed to call Kokkos::Cuda::finalize()
 ```
 
 Run batch of circuits in parallel
