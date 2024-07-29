@@ -174,11 +174,7 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
             y (np.ndarray): Labels of shape (n_samples,)
         """
 
-        self.svm.random_state = int(
-            jax.random.randint(
-                self.generate_key(), shape=(1,), minval=0, maxval=1000000
-            )
-        )
+        self.svm.random_state = self.rng.integers(100000)
 
         self.initialize(X.shape[1], np.unique(y))
 
