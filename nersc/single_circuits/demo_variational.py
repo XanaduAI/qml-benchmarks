@@ -1,7 +1,6 @@
 
 '''
-https://docs.ray.io/en/latest/ray-core/tasks.html#ray-remote-functions
-https://docs.ray.io/en/latest/ray-core/patterns/limit-running-tasks.html
+Demo of IQPVariationalClassifier using qml.IQPEmbedding and qml.StronglyEntanglingLayers.
 '''
 
 import argparse
