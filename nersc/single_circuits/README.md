@@ -42,7 +42,7 @@ Stats on interactive CPU node (nid004079)
 ```
 > Weights as native numpy arrays
 lightning.qubit
-  15 -      s
+  15 -  0.1 s
   20 -  3.3 s
   21 -  7 s
   22 - 16 s
@@ -55,20 +55,20 @@ lightning.kokkos
 > Benchmarking numpy/qml.numpy, gradients
 > no-grad: qml.np.array(requires_grad=True) but no jacobian requested
 lightning.qubit
-         numpy  qml.np  jacobian    qjit     qjit    qjit
+         numpy  qml.np    qml.np    qjit     qjit    qjit
                no-grad      grad    comp  no-grad    grad
-  15 -  0.17 s   1.0 s     2.4 s    10 s   0.08 s   error
-  16 -           2.0 s     4.0 s    11 s   0.15 s
-  17 -           3.5 s     7.0 s    13 s   0.37 s
-  20 -                              20 s   3.7  s
+  15 -    0.14    0.16       1.3    10.4      0.1    error
+  16 -    0.24    0.25       2.0    11.6      0.2 
+  17 -    0.44    0.42       3.7    12.8      0.3 
+  20 -    3.75    3.74      32.6    19.8      3.4 
 > NotImplementedError: Converting dtype('O') to a ctypes type
 lightning.kokkos (with 32 threads)
-         numpy  qml.np  jacobian    qjit     qjit    qjit
+         numpy  qml.np    qml.np    qjit     qjit    qjit
                no-grad      grad    comp  no-grad    grad
-  15 -       -  0.31 s     0.9 s
-  20 - 
-  23 -       -    13 s      25 s    23 s    1.3 s
-  25 -     5 s    90 s         -    31 s    7.7 s
+  15 -     0.1     0.1       0.7    10.3      0.0        
+  20 -     0.3     0.3       2.4    16.6      0.3        
+  23 -     1.4     1.4      15.1    21.5      1.3        
+  25 -     6.9     6.9     101.1    30.7      7.3        
 ```
 
 ### `lightning-kokkos` from source with CUDA

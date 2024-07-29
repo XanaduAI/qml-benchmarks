@@ -17,15 +17,16 @@ def get_parser():
     parser.add_argument('-q', '--device', default='lightning.qubit', help="quantum device e.g. lightning.qubit")
     parser.add_argument('-g', '--gradients', action='store_true', help="request gradients wrt. all weights")
     parser.add_argument('-j', '--jit', action='store_true', help="JIT with Catalyst")
-    parser.add_argument('-d', '--dryRun', action='store_true', help="print specs only, no circuit execution")
     parser.add_argument('--numpy', action='store_true', help="use numpy instead of pennylane.numpy")
+    parser.add_argument('-d', '--dryRun', action='store_true', help="print specs only, no circuit execution")
+    parser.add_argument('-r', '--report', action='store_true', help="print for report")
     args = parser.parse_args()
     return args
 
 args = get_parser()
 
-def print_elapsed(t1, t2):
-    print("%.6f s" % ((t2 - t1).total_seconds()))
+def print_elapsed(prefix, t1, t2):
+    print("%s%6.1f s" % (prefix, (t2 - t1).total_seconds()))
 
 # Model parameters available in config originate from circuit_variational.py.
 catalog = {
@@ -74,7 +75,8 @@ else:
 config = dict(catalog[args.numFeatures])
 
 config['device'] = args.device
-print('device:', args.device)
+if not args.report:
+    print('device:', args.device)
 
 n_features = config['n_features']
 n_layers = config['n_layers']
@@ -142,18 +144,25 @@ if args.dryRun:
         })
     exit(0)
 
-print('running circuit()')
+if not args.report:
+    print('running circuit()')
 
-# First run. Includes compilation if JIT.
-t_start = datetime.now()
-expval = circuit(model.params_, X)
-t_end = datetime.now()
-print_elapsed(t_start, t_end)
+if args.jit:
+    # First run. Includes compilation if JIT.
+    t_start = datetime.now()
+    expval = circuit(model.params_, X)
+    t_end = datetime.now()
+    print_elapsed('%2d ' % n_features, t_start, t_end)
+
+#factor = 1.01
+#X_2 = X * factor
+#params_2 = {"weights": model.params_["weights"] * factor}
 
 t_start = datetime.now()
 expval = circuit(model.params_, X)
 if args.gradients:
     grads = qml.jacobian(circuit)(model.params_, X)  # <INTERFACE>
 t_end = datetime.now()
+print_elapsed('%2d ' % n_features, t_start, t_end)
+
 #print(expval)
-print_elapsed(t_start, t_end)
