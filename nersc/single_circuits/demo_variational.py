@@ -53,6 +53,14 @@ if args.numpy:
 else:
     from pennylane import numpy as np  # <GRAD>
 
+if args.jit:
+    qjit = qml.qjit
+else:
+    def qjit(func):
+        def wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+        return wrapper
+
 config = dict(catalog[args.numFeatures])
 
 config['device'] = args.device
@@ -85,31 +93,18 @@ class VariationalModel:
 
     def create_circuit(self, x):
 
-        if args.jit:  # TODO: use mock qjit (?)
-            @qml.qjit
-            @qml.qnode(dev, diff_method="adjoint")  # <GRAD>
-            def circuit(params, x):
-                """
-                The variational circuit from the plots. Uses an IQP data embedding.
-                We use the same observable as in the plots.
-                """
-                qml.IQPEmbedding(x, wires=range(self.n_qubits_), n_repeats=self.repeats)
-                qml.StronglyEntanglingLayers(
-                    params["weights"], wires=range(self.n_qubits_), imprimitive=qml.CZ
-                )
-                return qml.expval(qml.PauliZ(0) @ qml.PauliZ(1))
-        else:
-            @qml.qnode(dev, diff_method="adjoint")  # <GRAD>
-            def circuit(params, x):
-                """
-                The variational circuit from the plots. Uses an IQP data embedding.
-                We use the same observable as in the plots.
-                """
-                qml.IQPEmbedding(x, wires=range(self.n_qubits_), n_repeats=self.repeats)
-                qml.StronglyEntanglingLayers(
-                    params["weights"], wires=range(self.n_qubits_), imprimitive=qml.CZ
-                )
-                return qml.expval(qml.PauliZ(0) @ qml.PauliZ(1))
+        @qjit
+        @qml.qnode(dev, diff_method="adjoint")  # <GRAD>
+        def circuit(params, x):
+            """
+            The variational circuit from the plots. Uses an IQP data embedding.
+            We use the same observable as in the plots.
+            """
+            qml.IQPEmbedding(x, wires=range(self.n_qubits_), n_repeats=self.repeats)
+            qml.StronglyEntanglingLayers(
+                params["weights"], wires=range(self.n_qubits_), imprimitive=qml.CZ
+            )
+            return qml.expval(qml.PauliZ(0) @ qml.PauliZ(1))
         
         self.circuit = circuit
 
