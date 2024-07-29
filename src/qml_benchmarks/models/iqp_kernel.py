@@ -177,7 +177,7 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
         self.svm.random_state = int(
             jax.random.randint(
                 self.generate_key(), shape=(1,), minval=0, maxval=1000000
-            )
+            )[0]
         )
 
         self.initialize(X.shape[1], np.unique(y))
