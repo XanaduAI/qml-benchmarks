@@ -7,12 +7,8 @@ https://docs.ray.io/en/latest/ray-core/patterns/limit-running-tasks.html
 import argparse
 import time
 
-import numpy as np
-
 import pennylane as qml
 import catalyst
-
-from pennylane import numpy as np  # <GRAD>
 
 from datetime import datetime
 
@@ -23,6 +19,7 @@ def get_parser():
     parser.add_argument('-g', '--gradients', action='store_true', help="request gradients wrt. all weights")
     parser.add_argument('-j', '--jit', action='store_true', help="JIT with Catalyst")
     parser.add_argument('-d', '--dryRun', action='store_true', help="print specs only, no circuit execution")
+    parser.add_argument('--numpy', action='store_true', help="use numpy instead of pennylane.numpy")
     args = parser.parse_args()
     return args
 
@@ -52,6 +49,11 @@ catalog = {
     30: {'n_features': 30, 'n_layers': 15, 'n_repeats': 10, 'n_params': 1, 'sample_shape': (30,), 'num_wires': 30, 'num_gates': 5850, 'depth': 435},
 }
 
+if args.numpy:
+    import numpy as np
+else:
+    from pennylane import numpy as np  # <GRAD>
+
 config = dict(catalog[args.numFeatures])
 
 config['device'] = args.device
@@ -76,8 +78,10 @@ class VariationalModel:
 
     def initialize_params(self):
         weights = 2 * np.pi * np.random.uniform(size=(self.n_layers, self.n_qubits_, 3))
-        weights = np.array(weights, requires_grad=True)  # <GRAD>
-
+        if args.numpy:
+            weights = np.array(weights)  # <GRAD>
+        else:
+            weights = np.array(weights, requires_grad=True)  # <GRAD>
         self.params_ = {"weights": weights}
 
     def create_circuit(self, x):
