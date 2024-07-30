@@ -94,10 +94,10 @@ def train(
     start = time.time()
     with tqdm(total=model.max_steps, desc="Training Progress") as pbar:
         for step in range(model.max_steps):
-            key = random_key_generator()
-            key1, key2 = jax.random.split(key, 2)
-            X_batch, y_batch = get_batch(X, y, key1, batch_size=model.batch_size)
-            params, opt_state, loss_val = update(params, opt_state, X_batch, y_batch, key2)
+            key_batch = random_key_generator()
+            key_loss = jax.random.split(key_batch, 1)
+            X_batch, y_batch = get_batch(X, y, key_batch, batch_size=model.batch_size)
+            params, opt_state, loss_val = update(params, opt_state, X_batch, y_batch, key_loss)
             loss_history.append(loss_val)
             logging.debug(f"{step} - loss: {loss_val}")
             pbar.update(1)
