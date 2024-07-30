@@ -23,19 +23,21 @@ def generate_bars_and_stripes(n_samples, height, width, noise_std):
         height (int): number of pixels for image height
         width (int): number of pixels for image width
         noise_std (float): standard deviation of Gaussian noise added to the pixels
+    Returns:
+        (array): data labels. -1 corresponds to a bar, +1 to a stripe.
     """
     X = np.ones([n_samples, 1, height, width]) * -1
     y = np.zeros([n_samples])
 
     for i in range(len(X)):
         if np.random.rand() > 0.5:
-            rows = np.where(np.random.rand(width) > 0.5)[0]
+            rows = np.where(np.random.rand(height) > 0.5)[0]
             X[i, 0, rows, :] = 1.0
-            y[i] = -1
-        else:
-            columns = np.where(np.random.rand(height) > 0.5)[0]
-            X[i, 0, :, columns] = 1.0
             y[i] = +1
+        else:
+            columns = np.where(np.random.rand(width) > 0.5)[0]
+            X[i, 0, :, columns] = 1.0
+            y[i] = -1
         X[i, 0] = X[i, 0] + np.random.normal(0, noise_std, size=X[i, 0].shape)
 
     return X, y
