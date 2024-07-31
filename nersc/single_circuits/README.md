@@ -15,13 +15,15 @@ mkdir -p venv
 python -m venv venv/qml_LK
 source venv/qml_LK/bin/activate
 
+cd /global/cfs/cdirs/m4693/qml-benchmarks-devel
+pip install -e .  # --user
+
+pip install ray  # for other experiments
+
 pip install pennylane-lightning
 pip install pennylane-lightning[kokkos]
 
 pip install pennylane-catalyst
-
-cd /global/cfs/cdirs/m4693/qml-benchmarks-devel
-pip install --user .
 ```
 
 Start interactive job on CPU node for testing

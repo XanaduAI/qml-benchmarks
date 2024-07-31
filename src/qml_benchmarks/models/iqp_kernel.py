@@ -19,6 +19,9 @@ import pennylane as qml
 import numpy as np
 import jax
 import jax.numpy as jnp
+
+import ray
+
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.svm import SVC
 from sklearn.preprocessing import MinMaxScaler
@@ -103,6 +106,8 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
     def construct_circuit(self):
         dev = qml.device(self.dev_type, wires=self.n_qubits_)
 
+        print('construct_circuit() start with %s' % self.dev_type)  # <REMOVE>
+
         def wrapped_circuit(x):
             @qml.qnode(dev, **self.qnode_kwargs)
             def circuit(x):
@@ -137,6 +142,7 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
 
         self.circuit = circuit
 
+        print('construct_circuit() done')  # <REMOVE>
         return circuit
 
     def precompute_kernel(self, X1, X2):
@@ -153,7 +159,28 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
 
         circuit = self.construct_circuit()
 
-        if self.use_jax and self.vmap:
+        if True:  # TODO: replace if clause (ray usage) <RAY>
+            # concatenate all pairs of vectors
+            Z = np.array([np.concatenate((X1[i], X2[j])) for i in range(dim1) for j in range(dim2)])
+
+            @ray.remote
+            def run_circuit(x):
+                return circuit(x)
+
+            print("precompute_kernel() start")
+            print(Z.shape)
+            
+            kernel_values = []
+            for z in Z:
+                kernel_values.append(run_circuit.remote(z))
+
+            # reshape the values into the kernel matrix
+            kernel_matrix = np.reshape(ray.get(kernel_values), (dim1, dim2))
+            print(kernel_matrix.shape)
+
+            print("precompute_kernel() done")
+
+        elif self.use_jax and self.vmap:
             # concatenate all pairs of vectors
             Z = np.array([np.concatenate((X1[i], X2[j])) for i in range(dim1) for j in range(dim2)])
             # if batched circuit is used
@@ -242,8 +269,10 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
         Returns:
             y_pred (np.ndarray): Predicted labels of shape (n_samples,)
         """
+        print("predict() start")  # <REMOVE>
         X = self.transform(X)
         kernel_matrix = self.precompute_kernel(X, self.params_["x_train"])
+        print("predict() concluding with svm.predict()")  # <REMOVE>
         return self.svm.predict(kernel_matrix)
 
     def predict_proba(self, X):

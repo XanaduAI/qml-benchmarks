@@ -8,6 +8,9 @@ import csv
 import os
 import yaml
 import subprocess
+
+import ray
+
 from qml_benchmarks.hyperparam_search_utils import read_data
 
 import argparse
@@ -47,6 +50,8 @@ if __name__=="__main__":
 
     perf_ind_name = 'JAX'  #a name for the performance indicator used for naming files
 
+    ray.init()
+
     #################################
 
     n_features = args.numFeatures  # dataset dimension
@@ -68,7 +73,9 @@ if __name__=="__main__":
     X_test,y_test = read_data(inpF2)
 
     model = Model(**hyperparams)
+    print('M:fit()')  # <REMOVE>
     model.fit(X_train, y_train)
+    print('M:fit() done')  # <REMOVE>
 
     #kernel construction time
     construct_kernel_time = model.construct_kernel_time_
@@ -76,9 +83,10 @@ if __name__=="__main__":
     training_time = model.training_time_
     #prediction time
     time0 = time.time()
+    print('M:predict()')  # <REMOVE>
     model.predict(X_test)
+    print('M:predict() done')  # <REMOVE>
     predict_time = time.time() - time0
-
 
     #write to csv
     data = [construct_kernel_time, training_time, predict_time, hyperparams]
