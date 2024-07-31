@@ -4,7 +4,6 @@ Demo of IQPVariationalClassifier using qml.IQPEmbedding and qml.StronglyEntangli
 '''
 
 import argparse
-import time
 
 import pennylane as qml
 import catalyst
@@ -56,21 +55,12 @@ else:
     from jax import numpy as jnp  # <INTERFACE>
 
 if args.jit:
-    qjit = qml.qjit
+    qjit = catalyst.qjit
 else:
     def qjit(func):
         def wrapper(*args, **kwargs):
             return func(*args, **kwargs)
         return wrapper
-
-if args.gradients:
-    interface = "autograd"  # <INTERFACE>
-    diff_method = "adjoint"
-    grad_on_execution = False
-else:
-    interface = None
-    diff_method = None
-    grad_on_execution = False
 
 config = dict(catalog[args.numFeatures])
 
@@ -98,25 +88,26 @@ class VariationalModel:
     def initialize_params(self):
         weights = 2 * np.pi * np.random.uniform(size=(self.n_layers, self.n_qubits_, 3))
         if args.numpy:
-            weights = np.array(weights)  # <GRAD>
+            weights = np.array(weights)
         else:
-            weights = np.array(weights, requires_grad=True)  # <GRAD>
-            #weights = jnp.array(weights)  # <INTERFACE>
+            if args.jit:
+                weights = jnp.array(weights)  # <GRAD>
+            else:
+                weights = np.array(weights, requires_grad=True)  # <GRAD>
         self.params_ = {"weights": weights}
 
     def create_circuit(self, x):
 
         @qjit
-        @qml.qnode(dev, interface=interface, diff_method=diff_method, 
-                   grad_on_execution=grad_on_execution)  # <GRAD> <INTERFACE>
-        def circuit(params, x):
+        @qml.qnode(dev, grad_on_execution=False)  # <GRAD> <INTERFACE>
+        def circuit(weights, x):
             """
             The variational circuit from the plots. Uses an IQP data embedding.
             We use the same observable as in the plots.
             """
             qml.IQPEmbedding(x, wires=range(self.n_qubits_), n_repeats=self.repeats)
             qml.StronglyEntanglingLayers(
-                params["weights"], wires=range(self.n_qubits_), imprimitive=qml.CZ
+                weights, wires=range(self.n_qubits_), imprimitive=qml.CZ
             )
             return qml.expval(qml.PauliZ(0) @ qml.PauliZ(1))
         
@@ -147,10 +138,17 @@ if args.dryRun:
 if not args.report:
     print('running circuit()')
 
+weights = model.params_["weights"]
+
+@qml.qjit
+def run_grad(weights, x):
+    grads = qml.grad(circuit, method="fd")(weights, x)
+    return grads
+
 if args.jit:
     # First run. Includes compilation if JIT.
     t_start = datetime.now()
-    expval = circuit(model.params_, X)
+    expval = circuit(weights, X)
     t_end = datetime.now()
     print_elapsed('%2d ' % n_features, t_start, t_end)
 
@@ -159,9 +157,9 @@ if args.jit:
 #params_2 = {"weights": model.params_["weights"] * factor}
 
 t_start = datetime.now()
-expval = circuit(model.params_, X)
+expval = circuit(weights, X)
 if args.gradients:
-    grads = qml.jacobian(circuit)(model.params_, X)  # <INTERFACE>
+    grads = run_grad(weights, X)
 t_end = datetime.now()
 print_elapsed('%2d ' % n_features, t_start, t_end)
 
