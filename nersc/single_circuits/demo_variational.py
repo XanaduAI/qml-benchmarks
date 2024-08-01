@@ -140,10 +140,14 @@ if not args.report:
 
 weights = model.params_["weights"]
 
-@qml.qjit
-def run_grad(weights, x):
-    grads = qml.grad(circuit, method="fd")(weights, x)
-    return grads
+if args.gradients:
+    if args.jit:
+        @qml.qjit
+        def run_grad(weights, x):
+            grads = catalyst.grad(circuit, method="fd")(weights, x)
+            return grads
+    else:
+        raise NotImplementedError('gradients w/o qjit')
 
 if args.jit:
     # First run. Includes compilation if JIT.

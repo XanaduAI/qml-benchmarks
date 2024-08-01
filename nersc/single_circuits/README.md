@@ -54,7 +54,7 @@ lightning.kokkos
   25 -  5 s (7 s with 32 threads)
   26 - 34 s
 
-> Benchmarking numpy/qml.numpy, gradients
+> Benchmarking numpy/qml.numpy, gradients with "adjoint"
 > no-grad: qml.np.array(requires_grad=True) but no jacobian requested
 lightning.qubit
          numpy  qml.np    qml.np    qjit     qjit    qjit
@@ -71,6 +71,23 @@ lightning.kokkos (with 32 threads)
   20 -     0.3     0.3       2.4    16.6      0.3        
   23 -     1.4     1.4      15.1    21.5      1.3        
   25 -     6.9     6.9     101.1    30.7      7.3        
+
+> Benchmarking numpy/qml.numpy, gradients with "finite-diff"
+lightning.qubit
+         numpy  qml.np    qml.np    qjit     qjit    qjit
+               no-grad      grad    comp  no-grad    grad
+  15 -     0.1     0.2         -     9.9      0.0    42.3 
+  16 -     0.1     0.3         -    11.1      0.1    87.7 
+  17 -     0.3     0.4         -    12.3      0.2          
+  20 -     2.6     3.0         -    18.2      2.5          
+
+lightning.kokkos (with 32 threads)
+         numpy  qml.np    qml.np    qjit     qjit    qjit
+               no-grad      grad    comp  no-grad    grad
+  15 -     0.1     0.1         -    10.1      0.0    27.3    
+  20 -     0.2     0.3         -    16.1      0.3   189.4    
+  23 -     1.3     1.5         -    21.3      1.4       -    
+  25 -     6.5     6.6         -    30.4      7.6       -    
 ```
 
 ### `lightning-kokkos` from source with CUDA
@@ -144,6 +161,18 @@ lightning.kokkos
   27 -    12 s
   28 -    25 s
 > Kokkos::Cuda ERROR: Failed to call Kokkos::Cuda::finalize()
+
+> Benchmarking numpy/qml.numpy, gradients with "finite-diff"
+lightning.kokkos
+         numpy   qml.np   qml.np    qjit     qjit    qjit
+                no-grad     grad    comp  no-grad    grad
+  15 -                              10.3      0.1    52.7
+  20 -                              16.5      0.4
+  22 -     0.3      0.5        -    20.4      1.1          
+  23 -     0.6      0.8        -    22.9      2.8          
+  25 -     2.6      2.9        -    49.1     24.0          
+  26 -     5.6      5.8        -                           
+
 ```
 
 Run batch of circuits in parallel
