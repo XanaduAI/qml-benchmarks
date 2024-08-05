@@ -205,7 +205,7 @@ def train_with_catalyst(model, loss_fn, optimizer, X, y, random_key_generator, c
         (params, opt_state, _, _, loss_history, key) = catalyst.for_loop(0,steps,1)(update)(args)
         return params, loss_history, opt_state
 
-    optimize = qjit(optimize) if  model.jit else update
+    optimize = qjit(optimize) if  model.jit else optimize
 
     def train_until_convergence(params, X, y):
         converged = False

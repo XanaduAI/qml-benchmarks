@@ -251,7 +251,8 @@ class IQPVariationalClassifier(BaseEstimator, ClassifierMixin):
             if self.jit:
                 loss_fn = qjit(loss_fn)
 
-            self.params_ = train_with_catalyst(self, loss_fn, optimizer, X, y, self.generate_key)
+            self.params_ = train_with_catalyst(self, loss_fn, optimizer, X, y, self.generate_key,
+                                               convergence_interval=self.convergence_interval)
 
         return self
 
