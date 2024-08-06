@@ -20,6 +20,7 @@ A short summary of the various folders in this repository is as follows:
 - `scripts`: example code for how to benchmark a model on a dataset
 - `src/qml_benchmarks`: a simple Python package defining quantum and classical models, 
    as well as data generating functions
+- `tests`: tests for the `qml_benchmarks` Python package.
 
 ## Installation
 
