@@ -77,7 +77,7 @@ class QuanvolutionalNeuralNetwork(BaseEstimator, ClassifierMixin):
         jit=True,
         learning_rate=0.001,
         max_steps=10000,
-        convergence_interval=10e-4,
+        convergence_interval=200,
         batch_size=32,
         random_state=42,
         scaling=1.0,
