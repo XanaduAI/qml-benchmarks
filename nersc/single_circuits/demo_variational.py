@@ -4,6 +4,8 @@ Demo of IQPVariationalClassifier using qml.IQPEmbedding and qml.StronglyEntangli
 '''
 
 import argparse
+import os
+import subprocess
 
 import pennylane as qml
 import catalyst
@@ -12,7 +14,7 @@ from datetime import datetime
 
 def get_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-n', '--numFeatures', type=int, default=15, help="dataset dimension ")
+    parser.add_argument('-n', '--numFeatures', type=str, default='15', help="dataset dimension(s) (comma separated list)")
     parser.add_argument('-q', '--device', default='lightning.qubit', help="quantum device e.g. lightning.qubit")
     parser.add_argument('-g', '--gradients', action='store_true', help="request gradients wrt. all weights")
     parser.add_argument('-j', '--jit', action='store_true', help="JIT with Catalyst")
@@ -62,21 +64,10 @@ else:
             return func(*args, **kwargs)
         return wrapper
 
-config = dict(catalog[args.numFeatures])
-
-config['device'] = args.device
-if not args.report:
-    print('device:', args.device)
-
-n_features = config['n_features']
-n_layers = config['n_layers']
-n_repeats = config['n_repeats']
-
-dev = qml.device(config['device'], wires=n_features)
-
 class VariationalModel:
 
-    def __init__(self, n_features, n_layers, n_repeats, x):
+    def __init__(self, dev, n_features, n_layers, n_repeats, x):
+        self.dev = dev
         self.n_qubits_ = n_features
         self.n_layers = n_layers
         self.repeats = n_repeats
@@ -99,7 +90,7 @@ class VariationalModel:
     def create_circuit(self, x):
 
         @qjit
-        @qml.qnode(dev, grad_on_execution=False)  # <GRAD> <INTERFACE>
+        @qml.qnode(self.dev, grad_on_execution=False)  # <GRAD> <INTERFACE>
         def circuit(weights, x):
             """
             The variational circuit from the plots. Uses an IQP data embedding.
@@ -113,58 +104,102 @@ class VariationalModel:
         
         self.circuit = circuit
 
-X = np.random.rand(*config['sample_shape'])
 
-model = VariationalModel(n_features, n_layers, n_repeats, X)
-circuit = model.circuit
+def benchmark(numFeatures):
 
-if args.dryRun:
-    print('inspecting circuit()')
-    specs = qml.specs(circuit, expansion_strategy='device')(model.params_, X)
-    print({
-        'n_features': n_features,
-        'n_layers': model.n_layers,
-        'n_repeats': model.repeats,
-        'n_params': model.params_["weights"].size,
-        'sample_shape': X.shape,
-        'device_name': specs['device_name'],
-        'gradient_fn': specs['gradient_fn'],
-        'num_wires': specs['resources'].num_wires,
-        'num_gates': specs['resources'].num_gates,
-        'depth': specs['resources'].depth,
-        })
-    exit(0)
+    config = dict(catalog[numFeatures])
 
-if not args.report:
-    print('running circuit()')
+    config['device'] = args.device
+    if not args.report:
+        print('device:', args.device)
 
-weights = model.params_["weights"]
+    n_features = config['n_features']
+    n_layers = config['n_layers']
+    n_repeats = config['n_repeats']
 
-if args.gradients:
+    dev = qml.device(config['device'], wires=n_features)
+
+    X = np.random.rand(*config['sample_shape'])
+
+    model = VariationalModel(dev, n_features, n_layers, n_repeats, X)
+    circuit = model.circuit
+
+    if args.dryRun:
+        print('inspecting circuit()')
+        specs = qml.specs(circuit, expansion_strategy='device')(model.params_, X)
+        print({
+            'n_features': n_features,
+            'n_layers': model.n_layers,
+            'n_repeats': model.repeats,
+            'n_params': model.params_["weights"].size,
+            'sample_shape': X.shape,
+            'device_name': specs['device_name'],
+            'gradient_fn': specs['gradient_fn'],
+            'num_wires': specs['resources'].num_wires,
+            'num_gates': specs['resources'].num_gates,
+            'depth': specs['resources'].depth,
+            })
+        exit(0)
+
+    if not args.report:
+        print('running circuit()')
+
+    weights = model.params_["weights"]
+
+    if args.gradients:
+        if args.jit:
+            @qml.qjit
+            def run_grad(weights, x):
+                grads = catalyst.grad(circuit, method="fd")(weights, x)
+                return grads
+        else:
+            raise NotImplementedError('gradients w/o qjit')
+
     if args.jit:
-        @qml.qjit
-        def run_grad(weights, x):
-            grads = catalyst.grad(circuit, method="fd")(weights, x)
-            return grads
+        # First run. Includes compilation if JIT.
+        t_start = datetime.now()
+        expval = circuit(weights, X)
+        t_end = datetime.now()
+        #print_elapsed('%2d ' % n_features, t_start, t_end)
+        first_time = (t_end - t_start).total_seconds()
     else:
-        raise NotImplementedError('gradients w/o qjit')
+        first_time = 0.0
 
-if args.jit:
-    # First run. Includes compilation if JIT.
+    #factor = 1.01
+    #X_2 = X * factor
+    #params_2 = {"weights": model.params_["weights"] * factor}
+
     t_start = datetime.now()
     expval = circuit(weights, X)
+    if args.gradients:
+        grads = run_grad(weights, X)
     t_end = datetime.now()
-    print_elapsed('%2d ' % n_features, t_start, t_end)
+    #print_elapsed('%2d ' % n_features, t_start, t_end)
+    second_time = (t_end - t_start).total_seconds()
 
-#factor = 1.01
-#X_2 = X * factor
-#params_2 = {"weights": model.params_["weights"] * factor}
+    #print(expval)
 
-t_start = datetime.now()
-expval = circuit(weights, X)
-if args.gradients:
-    grads = run_grad(weights, X)
-t_end = datetime.now()
-print_elapsed('%2d ' % n_features, t_start, t_end)
+    return_code = subprocess.call(
+        "nvidia-smi", shell=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.STDOUT)
 
-#print(expval)
+    n_threads = os.getenv('OMP_NUM_THREADS', '-')
+
+    tokens = [
+        args.device, 
+        'GPU' if return_code == 0 else 'CPU',
+        n_threads,
+        'grad' if args.gradients else '-', 
+        'qjit' if args.jit else '-',
+        'np' if args.numpy else '-',
+        '%d' % n_features,
+        '%.3f' % first_time, 
+        '%.3f' % second_time,
+    ]
+
+    print(','.join(tokens))
+
+
+for numFeatures in args.numFeatures.split(','):
+    benchmark(int(numFeatures))
