@@ -2,37 +2,46 @@
 echo W:myRank is $SLURM_PROCID
 IMG=$1
 CMD=$2
-outPath=$3
-CFSH=$4
-BASE_DIR=$5
-WORK_DIR=$6
+RAY_ADDRESS=$3
 
-if [ $SLURM_PROCID -eq 0 ] ; then 
+if [[ $SLURM_PROCID -eq 0 ]]; then 
    echo W:IMG=$IMG 
    echo W:CMD=$CMD
-   #echo Q:fire $
 fi
 
-echo W:BASE_DIR=$BASE_DIR
-echo 'W:start podman'
+CFSH=/global/cfs/cdirs/m4693  # CFS home
+REPO_DIR=$CFSH/qml-benchmarks-devel  # qml-benchmark repo
+ROOT_DIR=$REPO_DIR/nersc/root  # to access local python packages
+WORK_DIR=$REPO_DIR/nersc  # to store output files
+
+# Mount /tmp to avoid following error with Ray:
+#     ValueError: Can't find a `node_ip_address.json` file
+
+PORT=6379
+
+# Script will run in the workdir mounted in the container,
+# this will allow us to access the output files easily.
+
 podman-hpc run -it \
-    --volume $CFSH/$BASE_DIR:/root \
-    --volume $CFSH/$BASE_DIR:$BASE_DIR \
-    --volume $CFSH/$BASE_DIR/nersc/performance_indicators/linearly_separable:/linearly_separable \
-    --volume $CFSH/$WORK_DIR:$WORK_DIR \
+    --net host \
+    -p $PORT:$PORT \
+    --volume /tmp:/tmp \
+    --volume $ROOT_DIR:/root \
+    --volume $REPO_DIR:/qml-benchmarks \
+    --volume $WORK_DIR:/work_dir \
+    --workdir /work_dir \
     -e HDF5_USE_FILE_LOCKING='FALSE' \
-    --workdir $WORK_DIR \
+    --shm-size=10.24gb \
     $IMG <<EOF 
-echo P:pwd; pwd
-echo P:all
-ls -l ../..
+echo P:starting
+echo P:PWD=$PWD
+ls -l
+export RAY_DEDUP_LOGS=0
+export RAY_ADDRESS=$RAY_ADDRESS
+echo P:RAY_ADDRESS=\${RAY_ADDRESS}
 $CMD
 echo P:done
 exit
 EOF
   
-echo 'W:done podman'
-
-# spare
-# 	   --volume $HOME:/home \
-    # --volume  $CFSH/qml-benchmarks:/root 
+echo 'W:done'

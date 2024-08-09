@@ -8,6 +8,9 @@ import csv
 import os
 import yaml
 import subprocess
+
+import ray
+
 from qml_benchmarks.hyperparam_search_utils import read_data
 
 import argparse
@@ -46,6 +49,8 @@ if __name__=="__main__":
     model_settings = {'use_jax': use_jax, 'vmap': vmap, 'jit': jit}
 
     perf_ind_name = 'CAT_CPU'  #a name for the performance indicator used for naming files
+
+    ray.init()
 
     #################################
 

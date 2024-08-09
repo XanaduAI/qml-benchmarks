@@ -19,6 +19,9 @@ import pennylane as qml
 import numpy as np
 import jax
 import jax.numpy as jnp
+
+import ray
+
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.svm import SVC
 from sklearn.preprocessing import MinMaxScaler
@@ -154,7 +157,28 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
 
         circuit = self.construct_circuit()
 
-        if self.use_jax:
+        if self.use_ray:
+            # concatenate all pairs of vectors
+            Z = np.array([np.concatenate((X1[i], X2[j])) for i in range(dim1) for j in range(dim2)])
+
+            @ray.remote
+            def run_circuit(x):
+                return circuit(x)
+
+            print("precompute_kernel() start")
+            print(Z.shape)
+            
+            kernel_values = []
+            for z in Z:
+                kernel_values.append(run_circuit.remote(z))
+
+            # reshape the values into the kernel matrix
+            kernel_matrix = np.reshape(ray.get(kernel_values), (dim1, dim2))
+            print(kernel_matrix.shape)
+
+            print("precompute_kernel() done")
+
+        elif self.use_jax:
             # concatenate all pairs of vectors
             Z = np.array([np.concatenate((X1[i], X2[j])) for i in range(dim1) for j in range(dim2)])
             # if batched circuit is used
