@@ -184,7 +184,7 @@ def benchmark(numFeatures):
         stdout=subprocess.DEVNULL,
         stderr=subprocess.STDOUT)
 
-    n_threads = os.getenv('OMP_NUM_THREADS', '-')
+    n_threads = os.getenv('OMP_NUM_THREADS', '0')
 
     tokens = [
         args.device, 
