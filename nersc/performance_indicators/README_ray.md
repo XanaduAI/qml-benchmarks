@@ -4,6 +4,8 @@
 
 ### `lightning-kokkos` from pypi wheels
 
+NOTE: `venv/qml_LK` is described in `single_circuits/README.md`
+
 Start interactive job on CPU node for testing
 ``` bash
 salloc -q interactive -C cpu -t 0:30:00 -A m4693
@@ -13,8 +15,6 @@ salloc -q interactive -C cpu -t 0:30:00 -A m4693
 source /global/common/software/m4693/venv/qml_LK/bin/activate
 cd nersc/
 
-# to restrict the number of threads:
-#export OMP_NUM_THREADS=32
 python3 -u performance_indicators/perf_ind_kernel.py --numFeatures 4 --inputPath performance_indicators/linearly_separable/
 ```
 
@@ -26,6 +26,11 @@ qubits     4     10     15
 real    1m33s  2m42  11m27
 user    0m46s  1m00   4m20
 sys     0m22s  0m28   2m21
+```
+
+Start batch job on CPU node
+``` bash
+sbatch submit_job_single.slr
 ```
 
 Runtime with Ray on batch CPU node, 15 qubits

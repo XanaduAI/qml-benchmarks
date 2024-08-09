@@ -40,17 +40,20 @@ if __name__=="__main__":
     # You only need to change this to make a different performance indicator
 
     #define the model
-    from qml_benchmarks.models.projected_quantum_kernel import ProjectedQuantumKernel as Model
+    from qml_benchmarks.models.iqp_kernel import IQPKernelClassifier as Model
 
     #implementation attributes of model
     use_jax = False
     vmap = True
-    jit = True
-    model_settings = {'use_jax': use_jax, 'vmap': vmap, 'jit': jit}
+    jit = False
+    use_ray = True
+    model_settings = {'use_jax': use_jax, 'vmap': vmap, 'jit': jit,
+                      'use_ray': use_ray}
 
-    perf_ind_name = 'CAT_CPU'  #a name for the performance indicator used for naming files
+    perf_ind_name = 'RAY'  #a name for the performance indicator used for naming files
 
-    ray.init()
+    if use_ray:
+        ray.init()
 
     #################################
 

@@ -40,6 +40,7 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
         use_jax=False,
         vmap=True,
         jit=True,
+        use_ray=False,
         random_state=42,
         scaling=1.0,
         max_vmap=250,
@@ -92,6 +93,7 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
         self.use_jax = use_jax
         self.vmap = vmap
         self.jit = jit
+        self.use_ray = use_ray
 
         # data-dependant attributes
         # which will be initialised by calling "fit"
@@ -103,8 +105,10 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
     def generate_key(self):
         return self.rng.integers(1000000)
 
-    def construct_circuit(self):
-        dev = qml.device(self.dev_type, wires=self.n_qubits_)
+    def construct_circuit(self, dev=None):
+
+        if dev is None:
+            dev = qml.device(self.dev_type, wires=self.n_qubits_)
 
         def wrapped_circuit(x):
             @qml.qnode(dev, **self.qnode_kwargs)
@@ -139,7 +143,8 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
             else:
                 circuit = qjit(circuit)
 
-        self.circuit = circuit
+        if dev is None:
+            self.circuit = circuit
 
         return circuit
 
@@ -155,17 +160,19 @@ class IQPKernelClassifier(BaseEstimator, ClassifierMixin):
         dim1 = len(X1)
         dim2 = len(X2)
 
-        circuit = self.construct_circuit()
-
         if self.use_ray:
             # concatenate all pairs of vectors
             Z = np.array([np.concatenate((X1[i], X2[j])) for i in range(dim1) for j in range(dim2)])
 
             @ray.remote
             def run_circuit(x):
+                # dev is not pickable so it must be created within ray job.
+                dev = qml.device(self.dev_type, wires=self.n_qubits_)
+                circuit = self.construct_circuit(dev)
+                # TODO: run batch of circuits
                 return circuit(x)
 
-            print("precompute_kernel() start")
+            print("precompute_kernel() start (+)")
             print(Z.shape)
             
             kernel_values = []
