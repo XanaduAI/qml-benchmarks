@@ -1,0 +1,48 @@
+#!/bin/bash
+#SBATCH -A m4693
+#SBATCH -C cpu
+#SBATCH -t 00:30:00
+#SBATCH --job-name=qml_single
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1 # 1 ray worker runtime per node
+#SBATCH --cpus-per-task=256
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=thomas.germain@xanadu.ai
+#SBATCH --output=out/%j.%x.out
+#SBATCH --error=out/%j.%x.err
+
+#-------------------------------------------------------------------
+# SBATCH -q shared 
+# SBATCH --gpus-per-task=4 # 4 GPUs per node
+
+set -u ;  # exit  if you try to use an uninitialized variable
+
+echo "S:starting"
+
+################################################################
+# Define venv and command
+################################################################
+
+module load python
+source /global/common/software/m4693/venv/qml_LK/bin/activate
+
+cd /global/cfs/cdirs/m4693/qml-benchmarks-devel/nersc/
+
+CMD="./run_performance_indicator.sh"
+
+echo "S:PWD=$PWD"
+echo "S:CMD=$CMD"
+
+################################################################
+# Run Python scripts in container
+################################################################
+
+N=1
+
+echo "S:ready to run"
+srun -n $N $CMD
+
+sleep 1
+echo S:done
+
+# EOF

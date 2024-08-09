@@ -1,0 +1,71 @@
+#!/bin/bash
+#SBATCH -A m4693
+#SBATCH -C cpu
+#SBATCH -t 0:10:00
+#SBATCH --job-name=qml_multinode
+#SBATCH --nodes=2
+#SBATCH --ntasks-per-node=1 # 1 ray worker runtime per node
+#SBATCH --cpus-per-task=128
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=thomas.germain@xanadu.ai
+#SBATCH --output=out/%j.%x.out
+#SBATCH --error=out/%j.%x.err
+
+#-------------------------------------------------------------------
+# SBATCH -q shared 
+# SBATCH --gpus-per-task=4 # 4 GPUs per node
+
+set -u ;  # exit if you try to use an uninitialized variable
+
+echo "S:starting"
+echo "S:PWD=$PWD"
+
+################################################################
+# Define image and command
+################################################################
+
+IMG=tgermain/ubu22-pennylane-ray
+CMD="./run_hyperparam_search.sh"
+
+echo "S:IMG=$IMG"
+echo "S:CMD=$CMD"
+
+################################################################
+# Initialize Ray cluster environment
+################################################################
+
+head_node=$(hostname)
+head_node_ip=$(hostname --ip-address)
+# if we detect a space character in the head node IP, we'll
+# convert it to an ipv4 address. This step is optional.
+if [[ "$head_node_ip" == *" "* ]]; then
+IFS=' ' read -ra ADDR <<<"$head_node_ip"
+if [[ ${#ADDR[0]} -gt 16 ]]; then
+  head_node_ip=${ADDR[1]}
+else
+  head_node_ip=${ADDR[0]}
+fi
+fi
+port=6379
+
+echo "STARTING HEAD at $head_node"
+echo "Head node IP: $head_node_ip"
+srun --nodes=1 --ntasks=1 -w $head_node ./wrap_podman.sh $IMG "./start-head.sh $head_node_ip" &
+sleep 10
+
+worker_num=$(($SLURM_JOB_NUM_NODES - 1)) #number of nodes other than the head node
+srun -n $worker_num --nodes=$worker_num --ntasks-per-node=1 --exclude $head_node ./wrap_podman.sh $IMG "./start-worker.sh $head_node_ip:$port" &
+sleep 5
+
+################################################################
+# Run Python scripts in container
+################################################################
+
+echo "S:ready to run"
+
+./wrap_podman.sh $IMG "$CMD" "$head_node_ip:$port"
+
+sleep 1
+echo S:done
+
+# EOF
