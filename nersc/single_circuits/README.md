@@ -265,3 +265,22 @@ python3 single_circuits/demo_variational.py
 # Run container interactively with wrapper
 ./wrap_podman.sh $IMG "python3 single_circuits/demo_variational.py"
 ```
+
+## Plot benchmarks
+
+```
+cd /global/common/software/m4693/
+
+module load python
+mkdir -p venv
+
+python -m venv venv/qml_plot
+source venv/qml_plot/bin/activate
+
+pip install matplotlib pandas
+```
+
+```
+source /global/common/software/m4693/venv/qml_plot/bin/activate
+
+```
