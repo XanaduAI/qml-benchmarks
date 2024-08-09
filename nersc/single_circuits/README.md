@@ -37,7 +37,7 @@ cd nersc/
 
 # to restrict the number of threads:
 export OMP_NUM_THREADS=32
-python3 single_circuits/demo_variational.py -q lightning.qubit -n 25
+python3 single_circuits/demo_variational.py -q lightning.qubit -n 15,20 -r
 ```
 
 Stats on interactive CPU node (nid004079)
@@ -137,7 +137,7 @@ cd nersc/
 # to restrict the number of threads:
 #export OMP_NUM_THREADS=1
 
-python3 single_circuits/demo_variational.py -q lightning.kokkos -n 25
+python3 single_circuits/demo_variational.py -q lightning.kokkos -n 20,25 -r
 ```
 
 Stats on interactive GPU node (nid200381)
