@@ -162,8 +162,6 @@ def get_batch(X, y, rnd_key, batch_size=32):
         return X[rnd_indices], None
 
 
-
-
 def get_from_dict(dict, key_list):
     """
     Access a value from a nested dictionary.

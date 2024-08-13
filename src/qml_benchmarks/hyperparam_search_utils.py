@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 
 
-def read_data(path):
+def read_data(path, labels=True):
     """Read data from a csv file where each row is a data sample.
     The columns are the input features and the last column specifies a label.
 
@@ -30,8 +30,12 @@ def read_data(path):
     """
     # The data is stored on a CSV file with the last column being the label
     data = pd.read_csv(path, header=None)
-    X = data.iloc[:, :-1].values
-    y = data.iloc[:, -1].values
+    if labels:
+        X = data.iloc[:, :-1].values
+        y = data.iloc[:, -1].values
+    else:
+        X = data.iloc[:, :].values
+        y = None
     return X, y
 
 
