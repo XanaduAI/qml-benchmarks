@@ -21,9 +21,10 @@ import pandas as pd
 
 def read_data(path, labels=True):
     """Read data from a csv file where each row is a data sample.
-    The columns are the input features and the last column specifies a label.
+    The columns are the input features. If labels=True, the last feature is understood to be the label corresponding
+    to that sample.
 
-    Return a 2-d array of inputs and an array of labels, X,y.
+    Return a 2-d array of inputs and an array of labels (if labels=True)
 
     Args:
         path (str): path to data
