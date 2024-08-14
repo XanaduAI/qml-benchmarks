@@ -12,159 +12,108 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
-import jax
-import jax.numpy as jnp
-from qml_benchmarks.model_utils import train
-import optax
-import copy
 import flax.linen as nn
+from qml_benchmarks.models.base import EnergyBasedModel, BaseGenerator
+from sklearn.neural_network import BernoulliRBM
+from joblib import Parallel, delayed
+import numpy as np
+
 
 class MLP(nn.Module):
-    "multilayer perceptron in flax"
+    "Multilayer perceptron."
+    # Create a MLP with hidden layers and neurons specfied as a list of integers.
+    hidden_layers: list[int]
+
     @nn.compact
     def __call__(self, x):
-        x = nn.Dense(8)(x)
-        x = nn.tanh(x)
-        x = nn.Dense(4)(x)
-        x = nn.tanh(x)
+        for dim in self.hidden_layers:
+            x = nn.Dense(dim)(x)
+            x = nn.tanh(x)
         x = nn.Dense(1)(x)
         return x
 
-class EnergyBasedModel():
+
+class DeepEBM(EnergyBasedModel):
     """
-    Energy-based model for generative learning.
-    The model takes as input energy model written as a flax neural network and uses k contrastive divergence
-    to fit the parameters.
+    Energy-based model with the energy function is a neural network.
 
     Args:
-        learning_rate (float): The learning rate for the CD-k updates
-        cdiv_steps (int): The number of sampling steps used in contrastive divergence
-        jit (bool): Whether to use just-in-time complilation
-        batch_size (int): Size of batches used for computing parameter updates
-        max_steps (int): Maximum number of training steps.
-        convergence_interval (int or None): The number of loss values to consider to decide convergence.
-            If None, training runs until the maximum number of steps.
-        random_state (int): Seed used for pseudorandom number generation.
+        hidden_layers (list[int]):
+            The number of hidden layers and neurons in the MLP layers.
     """
 
-    def __init__(self, energy_model=MLP, learning_rate=0.001, cdiv_steps=1, jit=True, batch_size=32,
-                 max_steps=200, convergence_interval=200, random_state=42):
-        self.energy_model = energy_model()
-        self.learning_rate = learning_rate
-        self.random_state = random_state
-        self.rng = np.random.default_rng(random_state)
-        self.jit = jit
-        self.batch_size = batch_size
-        self.max_steps = max_steps
-        self.convergence_interval = convergence_interval
-        self.cdiv_steps = cdiv_steps
-        self.vmap = True
-        self.max_vmap = None
+    def __init__(self, hidden_layers=[8, 4], **base_kwargs):
+        super().__init__(**base_kwargs)
+        self.hidden_layers = hidden_layers
+        self.model = MLP(hidden_layers=hidden_layers)
 
-        # data depended attributes
-        self.params_ = None
-        self.n_visible_ = None
+    def initialize(self, x):
+        dim = x.shape[1]
+        if not isinstance(dim, int):
+            raise NotImplementedError(
+                "The model is not yet implemented for data"
+                "with arbitrary dimensions. `dim` must be an integer."
+            )
 
-        self.mcmc_step = jax.jit(self.mcmc_step) if jit else self.mcmc_step
-
-    def generate_key(self):
-        return jax.random.PRNGKey(self.rng.integers(1000000))
+        self.dim = dim
+        self.params_ = self.model.init(self.generate_key(), x)
 
     def energy(self, params, x):
+        return self.model.apply(params, x)
+
+
+class RBM(BernoulliRBM, BaseGenerator):
+    def __init__(
+        self,
+        n_components=256,
+        learning_rate=0.1,
+        batch_size=10,
+        n_iter=10,
+        verbose=0,
+        random_state=None,
+    ):
+        super().__init__(
+            n_components=n_components,
+            learning_rate=learning_rate,
+            batch_size=batch_size,
+            n_iter=n_iter,
+            verbose=verbose,
+            random_state=random_state,
+        )
+
+    def initialize(self, x: any = None):
+        self.fit(x[:1, ...])
+        if len(x.shape) > 2:
+            raise ValueError("Input data must be 2D")
+        self.dim = x.shape[1]
+
+    # Gibbs sampling:
+    def _sample(self, num_steps=1000):
         """
-        The energy function for the model for a given configuration x.
+        Sample the model for given number of steps.
 
         Args:
-            x: The configuration to calculate the energy for.
+            num_steps (int): Number of Gibbs sample steps
+
         Returns:
-            energy (float): The energy.
+            np.array: The samples at the given temperature.
         """
-        return self.energy_model.apply(params, x)
+        if self.dim is None:
+            raise ValueError("Model must be initialized before sampling")
+        v = np.random.choice(
+            [0, 1], size=(self.dim,)
+        )  # Assuming `N` is `self.n_components`
+        for _ in range(num_steps):
+            v = self.gibbs(v)  # Assuming `gibbs` is an instance method
+        return v
 
-    def initialize(self, n_features):
-        self.n_visible_ = n_features
-        x = jax.random.normal(self.generate_key(), shape=(1, n_features))
-        self.params_ = self.energy_model.init(self.generate_key(), x)
+    def sample(self, num_samples: int, num_steps: int = 1000) -> np.ndarray:
+        # Parallelize the sampling process
+        samples_t = Parallel(n_jobs=-1)(
+            delayed(self._sample)(num_steps=num_steps) for _ in range(num_samples)
+        )
+        samples_t = np.array(samples_t)
+        return samples_t
 
-    def mcmc_step(self, args, i):
-        """
-        Perform one metropolis hastings steps.
-        The format is such that it can be used with jax.lax.scan for fast compilation.
-        """
-        params = args[0]
-        key = args[1]
-        x = args[2]
-        key1, key2 = jax.random.split(key, 2)
-        flip_idx = jax.random.choice(key1, jnp.arange(self.n_visible_))
-        flip_config = jnp.zeros(self.n_visible_, dtype=int)
-        flip_config = flip_config.at[flip_idx].set(1)
-        x_flip = jnp.array((x + flip_config) % 2)
-        en = self.energy(params, jnp.expand_dims(x, 0))[0]
-        en_flip = self.energy(params, jnp.expand_dims(x_flip, 0))[0]
-        accept_ratio = jnp.exp(-en_flip) / jnp.exp(-en)
-        accept = jnp.array(jax.random.bernoulli(key2, accept_ratio), dtype=int)[0]
-        x_new = accept * x_flip + (1 - accept) * x
-        return [params, key2, x_new], x
-
-    def mcmc_sample(self, params, x_init, n_samples, key):
-        """
-        Sample a chain of configurations from a starting configuration x_init
-        """
-        carry = [params, key, x_init]
-        carry, configs = jax.lax.scan(self.mcmc_step, carry, jnp.arange(n_samples))
-        return configs
-
-    def langevin_sample(self, params, x_init, n_samples, key):
-        pass
-
-    def sample(self, n_samples):
-        """
-        sample configurations starting from a random configuration.
-        """
-        key = self.generate_key()
-        x_init = jnp.array(jax.random.bernoulli(key, p=0.5, shape=(self.n_visible_,)), dtype=int)
-        samples = self.mcmc_sample(self.params_, x_init, n_samples, self.generate_key())
-        return jnp.array(samples)
-
-    def fit(self, X):
-        """
-        Fit the parameters using contrastive divergence
-        """
-        self.initialize(X.shape[1])
-        X = jnp.array(X, dtype=int)
-
-        # batch the relevant functions
-        batched_mcmc_sample = jax.vmap(self.mcmc_sample, in_axes=(None, 0, None, 0))
-
-        def c_div_loss(params, X, y, key):
-            """
-            contrastive divergence loss
-            Args:
-                params (dict): parameter dictionary
-                X (array): batch of training examples
-                y (array): not used; should be set to None when training
-                key: jax PRNG key
-            """
-            keys = jax.random.split(key, X.shape[0])
-
-            # we do not take the gradient wrt the sampling, so decouple the param dict here
-            params_copy = copy.deepcopy(params)
-            for key in params_copy.keys():
-                params_copy[key] = jax.lax.stop_gradient(params_copy[key])
-
-            configs = batched_mcmc_sample(params_copy, X, self.cdiv_steps + 1, keys)
-            x0 = configs[:, 0]
-            x1 = configs[:, -1]
-
-            # taking the gradient of this loss is equivalent to the CD-k update
-            loss = self.energy(params, x0) - self.energy(params, x1)
-
-            return jnp.mean(loss)
-
-        c_div_loss = jax.jit(c_div_loss) if self.jit else c_div_loss
-
-        self.params_ = train(self, c_div_loss, optax.adam, X, None, self.generate_key,
-                             convergence_interval=self.convergence_interval)
-
-
+    def score(self, X: np.ndarray, y: np.ndarray) -> float:
+        return np.mean(super().score_samples(X))

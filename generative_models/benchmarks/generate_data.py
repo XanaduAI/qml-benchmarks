@@ -12,11 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Module containing data generating functions for classification tasks."""
+"""Generate 8blobs dataset."""
 
-from qml_benchmarks.data.bars_and_stripes import generate_bars_and_stripes
-from qml_benchmarks.data.hidden_manifold import generate_hidden_manifold_model
-from qml_benchmarks.data.hyperplanes import generate_hyperplanes_parity
-from qml_benchmarks.data.linearly_separable import generate_linearly_separable
-from qml_benchmarks.data.two_curves import generate_two_curves
-from qml_benchmarks.data.spin_blobs import generate_8blobs
+import os
+import numpy as np
+from qml_benchmarks.data import generate_8blobs
+
+
+if __name__ == "__main__":
+    os.makedirs("spin_blobs", exist_ok=True)
+    path_train = "spin_blobs/8blobs_train.csv"
+    path_test = "spin_blobs/8blobs_test.csv"
+
+    X, y = generate_8blobs(num_samples=5000)
+    np.savetxt(path_train, X, delimiter=",")
+
+    X, y = generate_8blobs(num_samples=1000)
+    np.savetxt(path_test, X, delimiter=",")
