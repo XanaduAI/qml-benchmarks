@@ -156,8 +156,6 @@ if __name__ == "__main__":
     train_dataset_filename = os.path.join(args.dataset_path)
     X, y = read_data(train_dataset_filename, labels=not is_generative)
 
-    X = (X+1)//2
-
     dataset_path_obj = Path(args.dataset_path)
     results_filename_stem = " ".join(
         [Model.__name__ + "_" + dataset_path_obj.stem
