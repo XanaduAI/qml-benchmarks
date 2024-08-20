@@ -16,6 +16,7 @@ import flax.linen as nn
 from qml_benchmarks.models.base import EnergyBasedModel, BaseGenerator
 from sklearn.neural_network import BernoulliRBM
 from joblib import Parallel, delayed
+from qml_benchmarks.model_utils import mmd_loss, median_heuristic
 import numpy as np
 
 
@@ -42,10 +43,11 @@ class DeepEBM(EnergyBasedModel):
             The number of hidden layers and neurons in the MLP layers.
     """
 
-    def __init__(self, hidden_layers=[8, 4], **base_kwargs):
+    def __init__(self, hidden_layers=[8, 4], mmd_kwargs = {'n_samples': 1000, 'sigma': 1.0},  **base_kwargs):
         super().__init__(**base_kwargs)
         self.hidden_layers = hidden_layers
         self.model = MLP(hidden_layers=hidden_layers)
+        self.mmd_kwargs = mmd_kwargs
 
     def initialize(self, x):
         dim = x.shape[1]
@@ -61,6 +63,9 @@ class DeepEBM(EnergyBasedModel):
     def energy(self, params, x):
         return self.model.apply(params, x)
 
+    def score(self, X: np.ndarray, y: np.ndarray) -> float:
+        return float(-mmd_loss(X, self.sample(self.mmd_kwargs['n_samples']), self.mmd_kwargs['sigma']))
+
 
 class RestrictedBoltzmannMachine(BernoulliRBM, BaseGenerator):
     def __init__(
@@ -71,6 +76,8 @@ class RestrictedBoltzmannMachine(BernoulliRBM, BaseGenerator):
         n_iter=10,
         verbose=0,
         random_state=None,
+        score_fn='pseudolikelihood',
+        mmd_kwargs ={'n_samples': 1000, 'sigma': 1.0}
     ):
         super().__init__(
             n_components=n_components,
@@ -80,6 +87,8 @@ class RestrictedBoltzmannMachine(BernoulliRBM, BaseGenerator):
             verbose=verbose,
             random_state=random_state,
         )
+        self.score_fn = score_fn
+        self.mmd_kwargs = mmd_kwargs
 
     def initialize(self, x: any = None):
         self.fit(x[:1, ...])
@@ -112,8 +121,11 @@ class RestrictedBoltzmannMachine(BernoulliRBM, BaseGenerator):
         samples_t = Parallel(n_jobs=-1)(
             delayed(self._sample)(num_steps=num_steps) for _ in range(num_samples)
         )
-        samples_t = np.array(samples_t)
+        samples_t = np.array(samples_t, dtype=int)
         return samples_t
 
     def score(self, X: np.ndarray, y: np.ndarray) -> float:
-        return np.mean(super().score_samples(X))
+        if self.score_fn == 'pseudolikelihood':
+            return float(np.mean(super().score_samples(X)))
+        elif self.score_fn == 'mmd':
+            return float(-mmd_loss(X, self.sample(self.mmd_kwargs['n_samples']), self.mmd_kwargs['sigma']))
