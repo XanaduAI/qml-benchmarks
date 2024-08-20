@@ -191,7 +191,7 @@ hyper_parameter_settings = {
         "alpha": {"type": "list", "dtype": "float", "val": [0.01, 0.001, 0.0001]},
     },
     "Perceptron": {"eta0": {"type": "list", "dtype": "float", "val": [0.1, 1, 10]}},
-    "RBM": {"learning_rate": {"type": "list", "dtype": "float", "val": [0.01, 0.1, 1.]}}, 
+    "RestrictedBoltzmannMachine": {"learning_rate": {"type": "list", "dtype": "float", "val": [0.01, 0.1, 1.]}},
     "DeepEBM": {"hidden_layers": {"type": "list", 
                                   "dtype": "tuple",
                                   "val": ["(100,)", "(10, 10, 10, 10)", "(50, 10, 5)"],

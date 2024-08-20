@@ -62,7 +62,7 @@ class DeepEBM(EnergyBasedModel):
         return self.model.apply(params, x)
 
 
-class RBM(BernoulliRBM, BaseGenerator):
+class RestrictedBoltzmannMachine(BernoulliRBM, BaseGenerator):
     def __init__(
         self,
         n_components=256,

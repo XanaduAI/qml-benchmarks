@@ -20,28 +20,33 @@ import os
 import time
 import argparse
 import logging
+
 logging.getLogger().setLevel(logging.INFO)
 from importlib import import_module
 import pandas as pd
 from pathlib import Path
 import matplotlib.pyplot as plt
 from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import make_scorer
+from qml_benchmarks.models.base import BaseGenerator
 from qml_benchmarks.hyperparam_search_utils import read_data, construct_hyperparameter_grid
 from qml_benchmarks.hyperparameter_settings import hyper_parameter_settings
 
 np.random.seed(42)
 
-logging.info('cpu count:' + str(os.cpu_count()))
+def custom_scorer(estimator, X, y=None):
+    return estimator.score(X, y)
 
+logging.info('cpu count:' + str(os.cpu_count()))
 
 if __name__ == "__main__":
     # Create an argument parser
     parser = argparse.ArgumentParser(description="Run experiments with hyperparameter search.",
-                            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument(
-        "--classifier-name",
-        help="Classifier to run",
+        "--model",
+        help="Model to run",
     )
 
     parser.add_argument(
@@ -91,27 +96,28 @@ if __name__ == "__main__":
     # Parse the arguments along with any extra arguments that might be model specific
     args, unknown_args = parser.parse_known_args()
 
-    if any(arg is None for arg in [args.classifier_name,
+    if any(arg is None for arg in [args.model,
                                    args.dataset_path]):
         msg = "\n================================================================================"
-        msg += "\nA classifier from qml.benchmarks.model and dataset path are required. E.g., \n \n"
-        msg += "python run_hyperparameter_search \ \n--classifier DataReuploadingClassifier \ \n--dataset-path train.csv\n"
+        msg += "\nA model from qml.benchmarks.models and dataset path are required. E.g., \n \n"
+        msg += "python run_hyperparameter_search \ \n--model DataReuploadingClassifier \ \n--dataset-path train.csv\n"
         msg += "\nCheck all arguments for the script with \n"
         msg += "python run_hyperparameter_search --help\n"
         msg += "================================================================================"
         raise ValueError(msg)
-    
+
     # Add model specific arguments to override the default hyperparameter grid
     hyperparam_grid = construct_hyperparameter_grid(
-        hyper_parameter_settings, args.classifier_name
+        hyper_parameter_settings, args.model
     )
+
     for hyperparam in hyperparam_grid:
         hp_type = type(hyperparam_grid[hyperparam][0])
         parser.add_argument(f'--{hyperparam}',
                             type=hp_type,
                             nargs="+",
                             default=hyperparam_grid[hyperparam],
-                            help=f'{hyperparam} grid values for {args.classifier_name}')
+                            help=f'{hyperparam} grid values for {args.model}')
 
     args = parser.parse_args(unknown_args, namespace=args)
 
@@ -122,11 +128,12 @@ if __name__ == "__main__":
     logging.info(
         "Running hyperparameter search experiment with the following settings\n"
     )
-    logging.info(args.classifier_name)
+    logging.info(args.model)
     logging.info(args.dataset_path)
     logging.info(" ".join(args.hyperparameter_scoring))
     logging.info(args.hyperparameter_refit)
-    logging.info("Hyperparam grid:"+" ".join([(str(key)+str(":")+str(hyperparam_grid[key])) for key in hyperparam_grid.keys()]))
+    logging.info("Hyperparam grid:" + " ".join(
+        [(str(key) + str(":") + str(hyperparam_grid[key])) for key in hyperparam_grid.keys()]))
 
     experiment_path = args.results_path
     results_path = os.path.join(experiment_path, "results")
@@ -135,22 +142,26 @@ if __name__ == "__main__":
         os.makedirs(results_path)
 
     ###################################################################
-    # Get the classifier, dataset and search methods from the arguments
+    # Get the model, dataset and search methods from the arguments
     ###################################################################
-    Classifier = getattr(
+    Model = getattr(
         import_module("qml_benchmarks.models"),
-        args.classifier_name
+        args.model
     )
-    classifier_name = Classifier.__name__
+    model_name = Model.__name__
+
+    is_generative = isinstance(Model(), BaseGenerator)
 
     # Run the experiments save the results
     train_dataset_filename = os.path.join(args.dataset_path)
-    X, y = read_data(train_dataset_filename)
+    X, y = read_data(train_dataset_filename, labels=not is_generative)
+
+    X = (X+1)//2
 
     dataset_path_obj = Path(args.dataset_path)
     results_filename_stem = " ".join(
-            [Classifier.__name__ + "_" + dataset_path_obj.stem
-             + "_GridSearchCV"])
+        [Model.__name__ + "_" + dataset_path_obj.stem
+         + "_GridSearchCV"])
 
     # If we have already run this experiment then continue
     if os.path.isfile(os.path.join(results_path, results_filename_stem + ".csv")):
@@ -162,44 +173,48 @@ if __name__ == "__main__":
             logging.warning(msg)
             sys.exit(msg)
         else:
-            logging.warning("Cleaning existing results for ", os.path.join(results_path, results_filename_stem + ".csv"))
-
+            logging.warning("Cleaning existing results for ",
+                            os.path.join(results_path, results_filename_stem + ".csv"))
 
     ###########################################################################
     # Single fit to check everything works
     ###########################################################################
-    classifier = Classifier()
+    model = Model()
     a = time.time()
-    classifier.fit(X, y)
+    model.fit(X, y)
     b = time.time()
-    acc_train = classifier.score(X, y)
+    default_score = model.score(X, y)
     logging.info(" ".join(
-        [classifier_name,
-        "Dataset path",
-        args.dataset_path,
-        "Train acc:",
-        str(acc_train),
-        "Time single run",
-        str(b - a)])
+        [model_name,
+         "Dataset path",
+         args.dataset_path,
+         "Train score:",
+         str(default_score),
+         "Time single run",
+         str(b - a)])
     )
-    if hasattr(classifier, "loss_history_"):
+    if hasattr(model, "loss_history_"):
         if args.plot_loss:
-            plt.plot(classifier.loss_history_)
+            plt.plot(model.loss_history_)
             plt.xlabel("Iterations")
             plt.ylabel("Loss")
             plt.show()
 
-    if hasattr(classifier, "n_qubits_"):
-        logging.info(" ".join(["Num qubits", f"{classifier.n_qubits_}"]))
+    if hasattr(model, "n_qubits_"):
+        logging.info(" ".join(["Num qubits", f"{model.n_qubits_}"]))
 
     ###########################################################################
     # Hyperparameter search
     ###########################################################################
-    gs = GridSearchCV(estimator=classifier, param_grid=hyperparam_grid,
-                        scoring=args.hyperparameter_scoring,
-                        refit=args.hyperparameter_refit,
-                        verbose=3,
-                        n_jobs=-1).fit(
+
+    scorer = args.hyperparameter_scoring if not is_generative else custom_scorer
+    refit = args.hyperparameter_refit if not is_generative else False
+
+    gs = GridSearchCV(estimator=model, param_grid=hyperparam_grid,
+                      scoring=scorer,
+                      refit=refit,
+                      verbose=3,
+                      n_jobs=args.n_jobs).fit(
         X, y
     )
     logging.info("Best hyperparams")
