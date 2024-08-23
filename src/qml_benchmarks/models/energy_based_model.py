@@ -43,7 +43,9 @@ class DeepEBM(EnergyBasedModel):
             The number of hidden layers and neurons in the MLP layers.
     """
 
-    def __init__(self, hidden_layers=[8, 4], mmd_kwargs = {'n_samples': 1000, 'sigma': 1.0},  **base_kwargs):
+    def __init__(self, hidden_layers=[8, 4],
+                 mmd_kwargs = {'n_samples': 1000, 'n_steps':1000, 'sigma': 1.0},
+                 **base_kwargs):
         super().__init__(**base_kwargs)
         self.hidden_layers = hidden_layers
         self.model = MLP(hidden_layers=hidden_layers)
@@ -64,7 +66,11 @@ class DeepEBM(EnergyBasedModel):
         return self.model.apply(params, x)
 
     def score(self, X: np.ndarray, y: np.ndarray) -> float:
-        return float(-mmd_loss(X, self.sample(self.mmd_kwargs['n_samples']), self.mmd_kwargs['sigma']))
+        sigma = self.mmd_kwargs['sigma']
+        sigmas = [sigma] if isinstance(sigma, (int, float)) else sigma
+        score = np.mean([mmd_loss(X, self.sample(self.mmd_kwargs['n_samples'],
+                                                 self.mmd_kwargs['n_steps']), sigma) for sigma in sigmas])
+        return float(-score)
 
 
 class RestrictedBoltzmannMachine(BernoulliRBM, BaseGenerator):
