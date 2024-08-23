@@ -311,3 +311,75 @@ def chunk_loss(loss_fn, max_vmap):
         return jnp.mean(res)
 
     return chunked_loss
+
+def mmd_loss(ground_truth: np.ndarray, model_samples: np.ndarray, sigma: float) -> float:
+    """Calculates an unbiased estimate of the Maximum Mean Discrepancy (MMD) loss from samples
+    see https://jmlr.org/papers/volume13/gretton12a/gretton12a.pdf for more info
+
+    Args:
+        ground_truth (np.ndarray): Samples from the ground truth distribution.
+        model_samples (np.ndarray): Samples from the test model.
+        sigma (float): Sigma parameter, the width of the kernel.
+
+    Returns:
+        float: The value of the MMD loss.
+    """
+
+    n = len(ground_truth)
+    m = len(model_samples)
+    ground_truth = jnp.array(ground_truth)
+    model_samples = jnp.array(model_samples)
+
+    # K_pp
+    K_pp = jnp.zeros((ground_truth.shape[0], ground_truth.shape[0]))
+    def body_fun(i, val):
+        def inner_body_fun(j, inner_val):
+            return inner_val.at[i, j].set(gaussian_kernel(sigma, ground_truth[i], ground_truth[j]))
+        return jax.lax.fori_loop(0, ground_truth.shape[0], inner_body_fun, val)
+    K_pp = jax.lax.fori_loop(0, ground_truth.shape[0], body_fun, K_pp)
+    sum_pp = jnp.sum(K_pp) - n
+
+    # K_pq
+    K_pq = jnp.zeros((ground_truth.shape[0], model_samples.shape[0]))
+    def body_fun(i, val):
+        def inner_body_fun(j, inner_val):
+            return inner_val.at[i, j].set(gaussian_kernel(sigma, ground_truth[i], model_samples[j]))
+        return jax.lax.fori_loop(0, model_samples.shape[0], inner_body_fun, val)
+    K_pq = jax.lax.fori_loop(0, ground_truth.shape[0], body_fun, K_pq)
+    sum_pq = jnp.sum(K_pq)
+
+    # K_qq
+    K_qq = jnp.zeros((model_samples.shape[0], model_samples.shape[0]))
+    def body_fun(i, val):
+        def inner_body_fun(j, inner_val):
+            return inner_val.at[i, j].set(gaussian_kernel(sigma, model_samples[i], model_samples[j]))
+        return jax.lax.fori_loop(0, model_samples.shape[0], inner_body_fun, val)
+    K_qq = jax.lax.fori_loop(0, model_samples.shape[0], body_fun, K_qq)
+    sum_qq = jnp.sum(K_qq) - m
+
+    return 1/n/(n-1) * sum_pp - 2/n/m * sum_pq + 1/m/(m-1) * sum_qq
+
+def gaussian_kernel(sigma: float, x: np.ndarray, y: np.ndarray) -> float:
+    """Calculates the value for the gaussian kernel between two vectors x, y
+
+    Args:
+        sigma (float): sigma parameter, the width of the kernel
+        x (np.ndarray): one of the vectors
+        y (np.ndarray): the other vector
+
+    Returns:
+        float: Result value of the gaussian kernel
+    """
+    return jnp.exp(-((x-y)**2).sum()/2/sigma)
+
+def median_heuristic(X):
+    """
+    Computes an estimate of the median heuristic used to decide the bandwidth of the RBF kernels; see
+    https://arxiv.org/abs/1707.07269
+    :param X (array): Dataset of interest
+    :return (float): median heuristic estimate
+    """
+    m = len(X)
+    X = np.array(X)
+    med = np.median([np.sqrt(np.sum((X[i] - X[j]) ** 2)) for i in range(m) for j in range(m)])
+    return med

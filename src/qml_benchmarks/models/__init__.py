@@ -46,7 +46,7 @@ from qml_benchmarks.models.separable import (
     SeparableKernelClassifier,
     SeparableVariationalClassifier,
 )
-from qml_benchmarks.models.energy_based_model import DeepEBM, RBM
+from qml_benchmarks.models.energy_based_model import DeepEBM, RestrictedBoltzmannMachine
 from qml_benchmarks.models.tree_tensor import TreeTensorClassifier
 from qml_benchmarks.models.vanilla_qnn import VanillaQNN
 from qml_benchmarks.models.weinet import WeiNet

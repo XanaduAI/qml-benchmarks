@@ -5,7 +5,7 @@ from qml_benchmarks.model_utils import train
 import optax
 import copy
 
-class RestrictedBoltzmannMachine():
+class RestrictedBoltzmannMachineOld():
     """
     A restricted Boltzmann machine generative model. The model is trained with the k-contrastive divergence (CD-k)
     algorithm.
