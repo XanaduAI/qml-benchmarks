@@ -76,7 +76,7 @@ class RestrictedBoltzmannMachine(BernoulliRBM, BaseGenerator):
         n_iter=10,
         verbose=0,
         random_state=None,
-        score_fn='mmd',
+        score_fn='pseudolikelihood',
         mmd_kwargs ={'n_samples': 1000, 'sigma': 1.0}
     ):
         super().__init__(
