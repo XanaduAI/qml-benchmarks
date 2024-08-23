@@ -192,7 +192,7 @@ python run_hyperparameter_search.py --model "DataReuploadingClassifier" --datase
 
 where`my_dataset.csv` is a CSV file containing the training data. For classification problems, each column should 
 correspond to an feature and the last column to the target. For generative learning, each row
-should correspond to a binary string that specifies a unique datapoint. 
+should correspond to a binary string that specifies a unique data sample. 
 
 Unless otherwise specified, the hyperparameter grid is loaded from `qml_benchmarks/hyperparameter_settings.py`.
 One can override the default grid of hyperparameters by specifying the hyperparameter list,

@@ -151,10 +151,11 @@ if __name__ == "__main__":
     model_name = Model.__name__
 
     is_generative = isinstance(Model(), BaseGenerator)
+    use_labels = False if is_generative else True
 
     # Run the experiments save the results
     train_dataset_filename = os.path.join(args.dataset_path)
-    X, y = read_data(train_dataset_filename, labels=not is_generative)
+    X, y = read_data(train_dataset_filename, labels=use_labels)
 
     dataset_path_obj = Path(args.dataset_path)
     results_filename_stem = " ".join(
