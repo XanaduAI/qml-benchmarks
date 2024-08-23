@@ -77,7 +77,7 @@ class RestrictedBoltzmannMachine(BernoulliRBM, BaseGenerator):
         verbose=0,
         random_state=None,
         score_fn='pseudolikelihood',
-        mmd_kwargs ={'n_samples': 1000, 'sigma': 1.0}
+        mmd_kwargs ={'n_samples': 1000, 'n_steps': 1000, 'sigma': 1.0}
     ):
         super().__init__(
             n_components=n_components,
@@ -133,5 +133,6 @@ class RestrictedBoltzmannMachine(BernoulliRBM, BaseGenerator):
         elif self.score_fn == 'mmd':
             sigma = self.mmd_kwargs['sigma']
             sigmas = [sigma] if isinstance(sigma, (int, float)) else sigma
-            score = np.mean([mmd_loss(X, self.sample(self.mmd_kwargs['n_samples']), sigma) for sigma in sigmas])
+            score = np.mean([mmd_loss(X, self.sample(self.mmd_kwargs['n_samples'],
+                                                     self.mmd_kwargs['n_steps']), sigma) for sigma in sigmas])
             return float(-score)
