@@ -43,7 +43,9 @@ class DeepEBM(EnergyBasedModel):
             The number of hidden layers and neurons in the MLP layers.
     """
 
-    def __init__(self, hidden_layers=[8, 4], mmd_kwargs = {'n_samples': 1000, 'sigma': 1.0},  **base_kwargs):
+    def __init__(self, hidden_layers=[8, 4],
+                 mmd_kwargs = {'n_samples': 1000, 'n_steps':1000, 'sigma': 1.0},
+                 **base_kwargs):
         super().__init__(**base_kwargs)
         self.hidden_layers = hidden_layers
         self.model = MLP(hidden_layers=hidden_layers)
@@ -64,7 +66,11 @@ class DeepEBM(EnergyBasedModel):
         return self.model.apply(params, x)
 
     def score(self, X: np.ndarray, y: np.ndarray) -> float:
-        return float(-mmd_loss(X, self.sample(self.mmd_kwargs['n_samples']), self.mmd_kwargs['sigma']))
+        sigma = self.mmd_kwargs['sigma']
+        sigmas = [sigma] if isinstance(sigma, (int, float)) else sigma
+        score = np.mean([mmd_loss(X, self.sample(self.mmd_kwargs['n_samples'],
+                                                 self.mmd_kwargs['n_steps']), sigma) for sigma in sigmas])
+        return float(-score)
 
 
 class RestrictedBoltzmannMachine(BernoulliRBM, BaseGenerator):
@@ -77,7 +83,7 @@ class RestrictedBoltzmannMachine(BernoulliRBM, BaseGenerator):
         verbose=0,
         random_state=None,
         score_fn='pseudolikelihood',
-        mmd_kwargs ={'n_samples': 1000, 'sigma': 1.0}
+        mmd_kwargs ={'n_samples': 1000, 'n_steps': 1000, 'sigma': 1.0}
     ):
         super().__init__(
             n_components=n_components,
@@ -90,11 +96,14 @@ class RestrictedBoltzmannMachine(BernoulliRBM, BaseGenerator):
         self.score_fn = score_fn
         self.mmd_kwargs = mmd_kwargs
 
-    def initialize(self, x: any = None):
-        self.fit(x[:1, ...])
-        if len(x.shape) > 2:
+    def initialize(self, X: any = None):
+        if len(X.shape) > 2:
             raise ValueError("Input data must be 2D")
-        self.dim = x.shape[1]
+        self.dim = X.shape[1]
+
+    def fit(self, X, y=None):
+        self.initialize(X)
+        super().fit(X, y)
 
     # Gibbs sampling:
     def _sample(self, num_steps=1000):
@@ -128,4 +137,8 @@ class RestrictedBoltzmannMachine(BernoulliRBM, BaseGenerator):
         if self.score_fn == 'pseudolikelihood':
             return float(np.mean(super().score_samples(X)))
         elif self.score_fn == 'mmd':
-            return float(-mmd_loss(X, self.sample(self.mmd_kwargs['n_samples']), self.mmd_kwargs['sigma']))
+            sigma = self.mmd_kwargs['sigma']
+            sigmas = [sigma] if isinstance(sigma, (int, float)) else sigma
+            score = np.mean([mmd_loss(X, self.sample(self.mmd_kwargs['n_samples'],
+                                                     self.mmd_kwargs['n_steps']), sigma) for sigma in sigmas])
+            return float(-score)

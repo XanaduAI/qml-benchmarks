@@ -81,7 +81,7 @@ __all__ = [
     "MLPClassifier",
     "SVC",
     "DeepEBM",
-    "RBM",
+    "RestrictedBoltzmannMachine",
 ]
 
 
