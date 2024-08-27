@@ -43,10 +43,26 @@ class DeepEBM(EnergyBasedModel):
             The number of hidden layers and neurons in the MLP layers.
     """
 
-    def __init__(self, hidden_layers=[8, 4],
-                 mmd_kwargs = {'n_samples': 1000, 'n_steps':1000, 'sigma': 1.0},
-                 **base_kwargs):
-        super().__init__(**base_kwargs)
+    def __init__(self,
+                 learning_rate=0.001,
+                 batch_size=32,
+                 max_steps=10000,
+                 cdiv_steps=100,
+                 convergence_interval=None,
+                 random_state=42,
+                 jit=True,
+                 hidden_layers=[8, 4],
+                 mmd_kwargs = {'n_samples': 1000, 'n_steps':1000, 'sigma': 1.0}):
+        super().__init__(
+            dim=None,
+            learning_rate=learning_rate,
+            batch_size=batch_size,
+            max_steps=max_steps,
+            cdiv_steps=cdiv_steps,
+            convergence_interval=convergence_interval,
+            random_state=random_state,
+            jit=jit
+        )
         self.hidden_layers = hidden_layers
         self.model = MLP(hidden_layers=hidden_layers)
         self.mmd_kwargs = mmd_kwargs
