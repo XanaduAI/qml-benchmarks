@@ -148,7 +148,7 @@ class EnergyBasedModel(BaseGenerator):
         params, key, x = args
         key1, key2 = jax.random.split(key, 2)
         flip_idx = jax.random.choice(key1, jnp.arange(self.dim))
-        flip_config = jnp.zeros(self.dim, dtype=int)
+        flip_config = jnp.zeros(self.dim, dtype='int32')
         flip_config = flip_config.at[flip_idx].set(1)
         x_flip = jnp.array((x + flip_config) % 2)
 
