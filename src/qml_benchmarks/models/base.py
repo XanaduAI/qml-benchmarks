@@ -208,8 +208,8 @@ class EnergyBasedModel(BaseGenerator):
                                       in_axes=(None, 0, None, 0),
                                       static_broadcasted_argnums=2)
             configs = pmapped_sample(self.params_, x_init, num_steps, keys)
+            configs = jnp.reshape(configs, (num_samples, num_steps, -1))
             x1 = configs[:, -1]
-
         return x1
 
     def contrastive_divergence_loss(self, params, X, y, key):
