@@ -171,7 +171,7 @@ class EnergyBasedModel(BaseGenerator):
     def langevin_sample(self, params, x_init, n_samples, key):
         pass
 
-    def sample(self, num_samples, num_mcmc_steps=1000):
+    def sample(self, num_samples, num_steps=1000):
         """
         sample configurations starting from a random configuration.
         """
@@ -188,7 +188,7 @@ class EnergyBasedModel(BaseGenerator):
             ),
             dtype=int,
         )
-        configs = self.batched_mcmc_sample(self.params_, x_init, num_mcmc_steps, keys)
+        configs = self.batched_mcmc_sample(self.params_, x_init, num_steps, keys)
         x1 = configs[:, -1]
         return x1
 
