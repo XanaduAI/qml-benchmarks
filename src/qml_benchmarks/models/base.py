@@ -116,8 +116,8 @@ class EnergyBasedModel(BaseGenerator):
         self.training_time_: float = None
 
         self.mcmc_step = jax.jit(self.mcmc_step)
-        self.batched_mcmc_sample = jax.vmap(
-            self.mcmc_sample, in_axes=(None, 0, None, 0)
+        self.batched_mcmc_sample = jax.jit(jax.vmap(
+            self.mcmc_sample, in_axes=(None, 0, None, 0)), static_argnums=2
         )
 
     def generate_key(self):
@@ -171,15 +171,24 @@ class EnergyBasedModel(BaseGenerator):
     def langevin_sample(self, params, x_init, n_samples, key):
         pass
 
-    def sample(self, num_samples, num_steps=1000):
+    def sample(self, num_samples, num_steps=1000, num_cores = 1):
         """
         sample configurations starting from a random configuration.
+        if num_cores is greater than one, you should set
+        os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count={}".format(num_cores) at start of script.
         """
+
         if self.params_ is None:
             raise ValueError(
                 "Model not initialized. Call model.initialize first with"
                 "example data sample."
             )
+
+        if num_samples%num_cores != 0:
+            raise ValueError(
+                "number of cores must divide the number of samples"
+            )
+
         keys = jax.random.split(self.generate_key(), num_samples)
 
         x_init = jnp.array(
@@ -188,8 +197,19 @@ class EnergyBasedModel(BaseGenerator):
             ),
             dtype=int,
         )
-        configs = self.batched_mcmc_sample(self.params_, x_init, num_steps, keys)
-        x1 = configs[:, -1]
+
+        if num_cores==1:
+            configs = self.batched_mcmc_sample(self.params_, x_init, num_steps, keys)
+            x1 = configs[:, -1]
+        else:
+            keys = jnp.reshape(keys, (num_cores, num_samples//num_cores, 2))
+            x_init = jnp.reshape(x_init, (num_cores, num_samples//num_cores, self.dim))
+            pmapped_sample = jax.pmap(self.batched_mcmc_sample,
+                                      in_axes=(None, 0, None, 0),
+                                      static_broadcasted_argnums=2)
+            configs = pmapped_sample(self.params_, x_init, num_steps, keys)
+            x1 = configs[:, -1]
+
         return x1
 
     def contrastive_divergence_loss(self, params, X, y, key):
