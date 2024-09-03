@@ -84,21 +84,21 @@ class RandomSpinBlobs:
         self.peak_probabilities = peak_probabilities
         self.p = p
 
-    def sample(self, num_samples: int, return_labels=False) -> np.array:
+    def sample(self, n_samples: int, return_labels=False) -> np.array:
         """Generate a given number of samples.
 
         Args:
-            num_samples (int): Number of samples to generate.
+            n_samples (int): Number of samples to generate.
             return_labels (bool, optional):
                 Whether to return labels for each sample. Defaults to False.
 
         Returns:
-            np.array: A (num_samples, N) array of spin configurations.
+            np.array: A (n_samples, N) array of spin configurations.
         """
         samples = []
         labels = []
 
-        for _ in range(num_samples):
+        for _ in range(n_samples):
             # Choose a random peak
             label = np.random.choice(self.num_blobs, p=self.peak_probabilities)
             labels.append(label)
@@ -124,7 +124,7 @@ class RandomSpinBlobs:
 
 
 def generate_8blobs(
-    num_samples: int,
+    n_samples: int,
     p: float = 0.01,
 ):
     """Generate 4x4 spin samples with 8 selected high-probability configurations
@@ -134,24 +134,24 @@ def generate_8blobs(
         import matplotlib.pyplot as plt
         from qml_benchmarks.data.spin_blobs import generate_8blobs
         X, y = generate_8blobs(100)
-        num_samples = 20
-        interval = len(X) // num_samples
+        n_samples = 20
+        interval = len(X) // n_samples
 
-        fig, axes = plt.subplots(1, num_samples, figsize=(20, 4))
-        for i in range(num_samples):
+        fig, axes = plt.subplots(1, n_samples, figsize=(20, 4))
+        for i in range(n_samples):
             axes[i].imshow(X[i*interval].reshape((4, 4)))
             axes[i].axis('off')
         plt.show()
 
     Args:
-        num_samples (int): The number of samples to generate.
+        n_samples (int): The number of samples to generate.
         p (float, optional):
             The value of the parameter p in a Binomial distribution bin(N, p)
             that determines how many spins are flipped during each sampling step
             after choosing one of the peak configurations. Defaults to 0.01.
 
     Returns:
-        np.ndarray: A (num_samples, 16) array of spin configurations.
+        np.ndarray: A (n_samples, 16) array of spin configurations.
     """
     np.random.seed(66)
     N: int = 16
@@ -200,7 +200,7 @@ def generate_8blobs(
         p=p,
     )
 
-    X, y = sampler.sample(num_samples=num_samples, return_labels=True)
+    X, y = sampler.sample(n_samples=n_samples, return_labels=True)
     X = X.reshape(-1, N)
 
     return X, y
