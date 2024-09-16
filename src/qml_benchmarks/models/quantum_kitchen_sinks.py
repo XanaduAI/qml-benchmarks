@@ -35,7 +35,7 @@ class QuantumKitchenSinks(BaseEstimator, ClassifierMixin):
         var=1.0,
         jit=True,
         max_vmap=None,
-        dev_type="default.qubit.jax",
+        dev_type="default.qubit",
         qnode_kwargs={"interface": "jax", "diff_method": None},
         scaling=1.0,
         random_state=42,

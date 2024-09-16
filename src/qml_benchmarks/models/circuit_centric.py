@@ -34,7 +34,7 @@ class CircuitCentricClassifier(BaseEstimator, ClassifierMixin):
         jit=True,
         scaling=1.0,
         random_state=42,
-        dev_type="default.qubit.jax",
+        dev_type="default.qubit",
         qnode_kwargs={"interface": "jax-jit"},
     ):
         r"""
@@ -75,7 +75,7 @@ class CircuitCentricClassifier(BaseEstimator, ClassifierMixin):
             max_vmap (int or None): The maximum size of a chunk to vectorise over. Lower values use less memory.
                 must divide batch_size.
             jit (bool): Whether to use just in time compilation.
-            dev_type (str): Pennylane device type; e.g. 'default.qubit.jax'.
+            dev_type (str): Pennylane device type; e.g. 'default.qubit'.
             qnode_kwargs (str): Keyword arguments for the circuit qnode.
             scaling (float): Factor by which to scale the input data.
             random_state (int): Seed used for pseudorandom number generation.

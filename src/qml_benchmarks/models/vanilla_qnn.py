@@ -34,7 +34,7 @@ class VanillaQNN(BaseEstimator, ClassifierMixin):
         convergence_threshold=1e-6,
         random_state=42,
         scaling=1.0,
-        dev_type="default.qubit.jax",
+        dev_type="default.qubit",
         qnode_kwargs={"interface": "jax"},
     ):
         """
