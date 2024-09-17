@@ -37,7 +37,7 @@ class ProjectedQuantumKernel(BaseEstimator, ClassifierMixin):
         jit=True,
         max_vmap=None,
         scaling=1.0,
-        dev_type="default.qubit.jax",
+        dev_type="default.qubit",
         qnode_kwargs={"interface": "jax-jit", "diff_method": None},
         random_state=42,
     ):

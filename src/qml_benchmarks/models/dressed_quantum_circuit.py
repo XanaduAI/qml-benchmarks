@@ -29,7 +29,7 @@ class DressedQuantumCircuitClassifier(BaseEstimator, ClassifierMixin):
         jit=True,
         max_steps=100000,
         convergence_interval=200,
-        dev_type="default.qubit.jax",
+        dev_type="default.qubit",
         qnode_kwargs={"interface": "jax-jit"},
         scaling=1.0,
         random_state=42,

@@ -35,7 +35,7 @@ class TreeTensorClassifier(BaseEstimator, ClassifierMixin):
         max_vmap=None,
         jit=True,
         scaling=1.0,
-        dev_type="default.qubit.jax",
+        dev_type="default.qubit",
         qnode_kwargs={"interface": "jax-jit"},
     ):
         r"""
