@@ -158,7 +158,7 @@ class EnergyBasedModel(BaseGenerator):
         accept_ratio = jnp.exp(-en_flip) / jnp.exp(-en)
         accept = jnp.array(jax.random.bernoulli(key2, accept_ratio), dtype=int)[0]
         x_new = accept * x_flip + (1 - accept) * x
-        return [params, key2, x_new], x
+        return [params, key2, x_new], x_new
 
     def mcmc_sample(self, params, x_init, num_mcmc_steps, key):
         """
@@ -208,7 +208,7 @@ class EnergyBasedModel(BaseGenerator):
             params_copy[key] = jax.lax.stop_gradient(params_copy[key])
 
         configs = self.batched_mcmc_sample(params_copy, X, self.cdiv_steps, keys)
-        x0 = configs[:, 0]
+        x0 = X
         x1 = configs[:, -1]
 
         # taking the gradient of this loss is equivalent to the CD-k update
