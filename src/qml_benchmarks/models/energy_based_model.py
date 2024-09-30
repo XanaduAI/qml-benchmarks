@@ -64,7 +64,6 @@ class DeepEBM(EnergyBasedModel):
             jit=jit
         )
         self.hidden_layers = hidden_layers
-        self.model = MLP(hidden_layers=hidden_layers)
         self.mmd_kwargs = mmd_kwargs
 
     def initialize(self, x):
@@ -76,6 +75,7 @@ class DeepEBM(EnergyBasedModel):
             )
 
         self.dim = dim
+        self.model = MLP(hidden_layers=self.hidden_layers)
         self.params_ = self.model.init(self.generate_key(), x)
 
     def energy(self, params, x):
