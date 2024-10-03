@@ -81,7 +81,7 @@ class DeepEBM(EnergyBasedModel):
     def energy(self, params, x):
         return self.model.apply(params, x)
 
-    def score(self, X: np.ndarray, y: np.ndarray) -> float:
+    def score(self, X: np.ndarray, y=None) -> float:
         sigma = self.mmd_kwargs['sigma']
         sigmas = [sigma] if isinstance(sigma, (int, float)) else sigma
         score = np.mean([mmd_loss(X, self.sample(self.mmd_kwargs['n_samples'],

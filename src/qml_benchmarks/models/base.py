@@ -171,7 +171,7 @@ class EnergyBasedModel(BaseGenerator):
     def langevin_sample(self, params, x_init, n_samples, key):
         pass
 
-    def sample(self, num_samples, num_steps=1000):
+    def sample(self, num_samples, num_steps=1000, max_chunk_size=100):
         """
         sample configurations starting from a random configuration.
         """
@@ -188,9 +188,18 @@ class EnergyBasedModel(BaseGenerator):
             ),
             dtype=int,
         )
-        configs = self.batched_mcmc_sample(self.params_, x_init, num_steps, keys)
-        x1 = configs[:, -1]
-        return x1
+
+        # chunk the sampling, otherwise the vmap can blow the memory
+        num_chunks = num_steps//max_chunk_size + 1
+        x_init = jnp.array_split(x_init, num_chunks)
+        keys = jnp.array_split(keys, num_chunks)
+        configs = []
+        for elem in zip(x_init, keys):
+            new_configs = self.batched_mcmc_sample(self.params_, elem[0], num_steps, elem[1])
+            configs.append(new_configs[:,-1])
+
+        configs = jnp.concatenate(configs)
+        return configs
 
     def contrastive_divergence_loss(self, params, X, y, key):
         """
