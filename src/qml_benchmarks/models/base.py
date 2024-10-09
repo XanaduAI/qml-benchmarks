@@ -34,12 +34,10 @@ class BaseGenerator(BaseEstimator):
     `RandomizedSearchCV` for hyperparameter tuning.
 
     Args:
-        dim:
-            The dimensionality of the samples, e.g., for spins it could be an
-            integer or a tuple specifying a grid.
+        dim (int): dimension of the data (i.e. the number of features)
     """
 
-    def __init__(self, dim: int or tuple[int]) -> None:
+    def __init__(self, dim: int) -> None:
         self.dim = dim
 
     @abstractmethod
@@ -48,9 +46,8 @@ class BaseGenerator(BaseEstimator):
         Initialize the model and create the model parameters.
 
         Args:
-            x: An example data or dimensionality of the model parameters.
+            x: batch of data to use to initialize the model
         """
-        # self.dim = x.shape[1:]
         pass
 
     @abstractmethod
@@ -65,8 +62,11 @@ class BaseGenerator(BaseEstimator):
 
 
 class EnergyBasedModel(BaseGenerator):
-    """
+    r"""
     A base class for energy-based generative models with common functionalities.
+
+    The class implements MCMC sampling via the energy function. This is used to sample from the model and to train
+    the model via k-contrastive divergence (see eqn (3) of arXiv:2101.03288).
 
     We use Scikit-learn's `BaseEstimator` so that we can take advantage of
     Scikit-learn's hyperparameter search algorithms like `GridSearchCV` or
@@ -77,9 +77,19 @@ class EnergyBasedModel(BaseGenerator):
     `BaseEstimator` documentation for more details.
 
     References:
-    Teh, Yee Whye, Max Welling, Simon Osindero, and Geoffrey E. Hinton.
-    "Energy-Based Models for Sparse Overcomplete Representations."
-    Journal of Machine Learning Research, vol. 4, 2003, pp. 1235-1260.
+    Yang Song, Diederik P. Kingma
+    "How to Train Your Energy-Based Models"
+    arXiv:2101.03288
+
+    Args:
+        dim (int): dimension of the data (i.e. number of features)
+        cdiv_steps (int): number of mcmc steps to perform to estimate the constrastive divergence loss (default 1)
+        convergence_interval (int): The number of loss values to consider to decide convergence.
+        max_steps (int): Maximum number of training steps. A warning will be raised if training did not converge.
+        learning_rate (float): Initial learning rate for training.
+        batch_size (int): Size of batches used for computing parameter updates.
+        jit (bool): Whether to use just in time compilation.
+        random_state (int): Seed used for pseudorandom number generation.
     """
 
     def __init__(
@@ -88,7 +98,7 @@ class EnergyBasedModel(BaseGenerator):
         learning_rate=0.001,
         batch_size=32,
         max_steps=10000,
-        cdiv_steps=100,
+        cdiv_steps=1,
         convergence_interval=None,
         random_state=42,
         jit=True,
@@ -108,14 +118,12 @@ class EnergyBasedModel(BaseGenerator):
         self.params_: dict[str : jnp.array] = None
         self.dim = dim  # initialized to None
 
-        # Train depended attributes that the function train in self.fit() sets.
-        # It is not the best practice to set attributes hidden in that function
-        # Since it is not clear unless someone knows what the train function does.
-        # Therefore we add it here for clarity.
+        # Train dependent attributes that the function train in self.fit() sets.
         self.history_: list[float] = None
         self.training_time_: float = None
 
-        self.mcmc_step = jax.jit(self.mcmc_step)
+        # jax transformations of class functions
+        self.mcmc_step = jax.jit(self.mcmc_step) if self.jit else self.mcmc_step
         self.batched_mcmc_sample = jax.vmap(
             self.mcmc_sample, in_axes=(None, 0, None, 0)
         )
@@ -126,20 +134,17 @@ class EnergyBasedModel(BaseGenerator):
     @abstractmethod
     def energy(self, params: dict, x: any) -> float:
         """
-        The energy function for the model for a given configuration x.
-
-        This function should be implemented by the subclass and is also
-        responsible for initializing the parameters of the model, if necessary.
+        The energy function for the model for a batch of configurations x.
+        This function should be implemented by the subclass.
 
         Args:
-            x: The configuration to calculate the energy for.
+            params: model parameters that determine the energy function.
+            x: batch of configurations of shape (n_batch, dim) for which to calculate the energy
         Returns:
-            energy (float): The energy.
+            energy (Array): Array of energies of shape (n_batch,)
         """
         pass
 
-    # TODO: this can be made even more efficient with Numpyro MCMC
-    # see qgml.mcmc for a simple example
     def mcmc_step(self, args, i):
         """
         Perform one metropolis hastings steps.
@@ -147,14 +152,16 @@ class EnergyBasedModel(BaseGenerator):
         """
         params, key, x = args
         key1, key2 = jax.random.split(key, 2)
+
+        # flip a random bit
         flip_idx = jax.random.choice(key1, jnp.arange(self.dim))
         flip_config = jnp.zeros(self.dim, dtype='int32')
         flip_config = flip_config.at[flip_idx].set(1)
         x_flip = jnp.array((x + flip_config) % 2)
 
         en = self.energy(params, jnp.expand_dims(x, 0))[0]
-
         en_flip = self.energy(params, jnp.expand_dims(x_flip, 0))[0]
+
         accept_ratio = jnp.exp(-en_flip) / jnp.exp(-en)
         accept = jnp.array(jax.random.bernoulli(key2, accept_ratio), dtype=int)[0]
         x_new = accept * x_flip + (1 - accept) * x
@@ -168,12 +175,15 @@ class EnergyBasedModel(BaseGenerator):
         carry, configs = jax.lax.scan(self.mcmc_step, carry, jnp.arange(num_mcmc_steps))
         return configs
 
-    def langevin_sample(self, params, x_init, n_samples, key):
-        pass
-
     def sample(self, num_samples, num_steps=1000, max_chunk_size=100):
         """
-        sample configurations starting from a random configuration.
+        Sample configurations starting from a random configuration.
+        Each sample is generated by sampling a random configuration and perforning a number of mcmc updates.
+        Args:
+            num_samples (int): number of samples to draw
+            num_steps (int): number of mcmc steps before drawing a sample
+            max_chunk_size (int): maximum number of samples to vmap the sampling for at a time (large values
+                use significant memory)
         """
         if self.params_ is None:
             raise ValueError(
@@ -203,11 +213,11 @@ class EnergyBasedModel(BaseGenerator):
 
     def contrastive_divergence_loss(self, params, X, y, key):
         """
-        Contrastive divergence loss function.
+        Implementation of the standard contrastive divergence loss function (see eqn 3 of arXiv:2101.03288).
         Args:
             X (array): batch of training examples
             y (array): not used; should be set to None when training
-            key: jax PRNG key
+            key: JAX PRNG key used for MCMC sampling
         """
         keys = jax.random.split(key, X.shape[0])
 
@@ -246,57 +256,30 @@ class EnergyBasedModel(BaseGenerator):
             convergence_interval=self.convergence_interval,
         )
 
-    def score(self, X, y=None):
-        """Score the model on the given data.
-
-        Higher is better.
+    @abstractmethod
+    def score(self, X, y=None) -> any:
         """
-        if self.params_ is None:
-            self.initialize(X.shape[1])
+        Score function to be used with hyperparameter optimization (larger score => better)
 
-        c_div_loss = (
-            jax.jit(self.contrastive_divergence_loss)
-            if self.jit
-            else self.contrastive_divergence_loss
-        )
+        Args:
+            X: Dataset to calculate score for
+            y: labels (set to None for generative models to interface with sklearn functionality)
+        """
+        pass
 
-        return 1 - c_div_loss(self.params_, X, y, self.generate_key())
+    # def score(self, X, y=None):
+    #     """Score the model on the given data.
+    #
+    #     Higher is better.
+    #     """
+    #     if self.params_ is None:
+    #         self.initialize(X.shape[1])
+    #
+    #     c_div_loss = (
+    #         jax.jit(self.contrastive_divergence_loss)
+    #         if self.jit
+    #         else self.contrastive_divergence_loss
+    #     )
+    #
+    #     return 1 - c_div_loss(self.params_, X, y, self.generate_key())
 
-
-class SimpleEnergyModel(EnergyBasedModel):
-    """A simple energy-based generative model.
-
-    Example:
-    --------
-    model = SimpleEnergyModel()
-
-    # Generate random 2D data of 0, 1
-    X = np.random.randint(0, 2, size=(100, 2))
-
-    # Initialize and calculate the energy of the model with the given data
-    model.initialize(X)
-    print(model.energy(model.params_, X))
-
-    # Fit the model to the data
-    model.fit(X)
-
-    # Generate 100 samples from the model
-    samples = model.sample(100)
-
-    # Score the model on the generated data
-    print(model.score(X))
-    """
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.params_ = None  # Data-dependent attributes
-
-    def initialize(self, x: any = None):
-        key = self.generate_key()
-        self.dim = x.shape[1]
-        initializer = jax.nn.initializers.he_uniform()
-        self.params_ = {"weights": initializer(key, (x.shape[1], 1), jnp.float32)}
-
-    def energy(self, params, x):
-        # Define the energy function here as the dot product of the parameters.
-        return jnp.dot(x, params["weights"])
