@@ -1,7 +1,7 @@
 # Benchmarking for quantum machine learning models
 
 This repository contains tools to compare the performance of near-term quantum machine learning (QML)
-as well as standard classical machine learning models on supervised learning tasks. 
+as well as standard classical machine learning models on supervised and generative learning tasks. 
 
 It is based on pipelines using [Pennylane](https://pennylane.ai/) for the simulation of quantum circuits, 
 [JAX](https://jax.readthedocs.io/en/latest/index.html) for training, 
@@ -61,18 +61,23 @@ class MyModel(BaseEstimator, ClassifierMixin):
                     
         # reproducibility is ensured by creating a numpy PRNG and using it for all
         # subsequent random functions. 
-        self._random_state = random_state
-        self._rng = np.random.default_rng(random_state)
+        self.random_state = random_state
+        self.rng = np.random.default_rng(random_state)
             
         # define data-dependent attributes
         self.params_ = None
         self.n_qubits_ = None
+        
+    def initialize(self, args):
+        """
+        initialize the model if necessary
+        """
+        # ... your code here ...   
 
     def fit(self, X, y):
         """Fit the model to data X and labels y.
 
         Add your custom training loop here and store the trained model parameters in `self.params_`.
-        Set the data-dependent attributes, such as `self.n_qubits_`.
         
         Args:
             X (array_like): Data of shape (n_samples, n_features)
@@ -146,19 +151,86 @@ model.fit(X_train, y_train)
 print(model.score(X_test, y_test))
 ```
 
+
 ## Adding a custom generative model
 
-TO DO
+The minimal template for a new generative model closely follows that of the classifier models.
+Labels are set to `None` throughout to maintain sci-kit learn functionality. 
 
-mention: 
-- need score such that greater is better
-- data should be 0/1 valued
-- inheritance etc
+```python
+import numpy as np
+
+from sklearn.base import BaseEstimator
+
+
+class MyModel(BaseEstimator):
+    def __init__(self, hyperparam1="some_value",  random_state=42):
+
+        # store hyperparameters as attributes
+        self.hyperparam1 = hyperparam1
+                    
+        # reproducibility is ensured by creating a numpy PRNG and using it for all
+        # subsequent random functions. 
+        self.random_state = random_state
+        self.rng = np.random.default_rng(random_state)
+            
+        # define data-dependent attributes
+        self.params_ = None
+        self.n_qubits_ = None
+        
+    def initialize(self, args):
+        """
+        initialize the model if necessary
+        """
+        # ... your code here ...   
+
+    def fit(self, X, y=None):
+        """Fit the model to data X.
+
+        Add your custom training loop here and store the trained model parameters in `self.params_`.
+        
+        Args:
+            X (array_like): Data of shape (n_samples, n_features)
+            y (array_like): not used (no labels)
+        """
+        # ... your code here ...        
+
+    def sample(self, num_samples):
+        """sample from the generative model
+        
+        Args:
+            num_samples (int): number of points to sample
+        
+        Returns:
+            array_like: sampled points
+        """
+        # ... your code here ...
+        
+        return samples
+
+    def score(self, X, y=None):
+        """A optional custom score function to be used with hyperparameter optimization
+        Args:
+            X (array_like): Data of shape (n_samples, n_features)
+            y: unused (no labels for generative models)
+
+        Returns:
+            (float): score for the dataset X
+        """
+        # ... your code here ...
+        return score
+```
+
+If the model samples binary data, it is recommended to construct models that sample binary strings (rather than $\pm1$ valued strings) 
+to align with the datasets designed for generative models. The repository currently contains two classical generative models:
+a restricted Boltzmann machine and a simple energy based model (called DeepEBM) that uses a multi-layer perceptron as its energy function. 
+Energy based models with more structure can easily be constructed by replacing the multilayer perception neural network by
+any other differentiable network written in flax. 
 
 ## Datasets
 
 The `qml_benchmarks.data` module provides generating functions to create datasets for binary classification and
-generative learning. 
+generative learning.
 
 A generating function can be used like this:
 
@@ -183,7 +255,8 @@ This will create a new folder in `paper/benchmarks` containing the datasets.
 ## Running hyperparameter optimization
 
 In the folder `scripts` we provide an example that can be used to
-generate results for a hyperparameter search for any model and dataset. The script
+generate results for a hyperparameter search for any model and dataset. The script functions
+for both classifier and generative models. The script
 can be run as
 
 ```
@@ -191,7 +264,7 @@ python run_hyperparameter_search.py --model "DataReuploadingClassifier" --datase
 ```
 
 where`my_dataset.csv` is a CSV file containing the training data. For classification problems, each column should 
-correspond to an feature and the last column to the target. For generative learning, each row
+correspond to a feature and the last column to the target. For generative learning, each row
 should correspond to a binary string that specifies a unique data sample. 
 
 Unless otherwise specified, the hyperparameter grid is loaded from `qml_benchmarks/hyperparameter_settings.py`.
