@@ -8,31 +8,7 @@ from numpyro.infer import MCMC
 from jax import random
 from collections import namedtuple
 from numpyro.infer.mcmc import MCMCKernel
-from qgml.data import SpinConfigurationGeneratorBase
 from tqdm.auto import tqdm
-
-def create_isotropic_interaction_matrix(grid_size: int):
-    """Create an interaction matrix for a 2D isotropic square lattice."""
-    J = jnp.zeros((grid_size * grid_size, grid_size * grid_size))
-
-    for i in range(grid_size):
-        for j in range(grid_size):
-            # Spin index in the grid
-            idx = i * grid_size + j
-
-            # Calculate the indices of the neighbors
-            right_idx = i * grid_size + (j + 1) % grid_size
-            left_idx = i * grid_size + (j - 1) % grid_size
-            bottom_idx = ((i + 1) % grid_size) * grid_size + j
-            top_idx = ((i - 1) % grid_size) * grid_size + j
-
-            # Set the interactions, ensuring each pair is only added once
-            J = J.at[idx, right_idx].set(1)
-            J = J.at[idx, left_idx].set(1)
-            J = J.at[idx, bottom_idx].set(1)
-            J = J.at[idx, top_idx].set(1)
-    return J
-
 
 @jax.jit
 def energy(s, J, b, J_sparse=None):
@@ -50,7 +26,6 @@ def energy(s, J, b, J_sparse=None):
         ) / 2.0 - jnp.dot(s, b)
     else:
         return -jnp.einsum("i,j,ij->", s, s, J) / 2.0 - jnp.dot(s, b)
-
 
 def initialize_spins(rng_key, num_spins, num_chains):
     if num_chains == 1:
@@ -119,11 +94,19 @@ class MetropolisHastings(MCMCKernel):
         return MHState(spins, rng_key)
 
 
-# Define the Ising model class
-class IsingSpins(SpinConfigurationGeneratorBase):
-    """
-    class object used to generate datasets
-    ArgsL
+class IsingSpins:
+    r"""
+    class object used to generate datasets by sampling an ising distrbution of a specified interaction
+    matrix. The distribution is sampled via markov chain Monte Carlo via the Metrolopis Hastings
+    algorithm.
+
+    In the case of perfect sampling, a spin configuration s is sampled with probabability
+    :math:`p(s)=exp(-H(s)/T)`, where the energy :math:`H(s)=\sum_{i\neq j}s_i s_i J_{ij}+\sum_i b_i s_i`
+    corresponds to an ising Hamiltonian and configurations s are :math:`\pm1` valued.
+
+    The final sampled configurations are converted from a :math:`\pm1` representation to to a binary
+    representation via x = (s+1)//2.
+
     N (int): Number of spins
     J (np.array): interaction matrix
     b (np.array): bias terms
@@ -134,14 +117,15 @@ class IsingSpins(SpinConfigurationGeneratorBase):
     def __init__(
         self, N: int, J: jnp.array, b: jnp.array, T: float, sparse=False, compute_partition_fn=False
     ) -> None:
-        super().__init__(N)
+
+        self.N = N
         self.kernel = MetropolisHastings()
         self.J = J
         self.T = T
         self.b = b
         self.J_sparse = jnp.nonzero(J) if sparse else None
 
-       if compute_partition_fn:
+        if compute_partition_fn:
             Z = 0
             for i in tqdm(range(2**self.N), desc="Computing partition function"):
                 lattice = (-1) ** jnp.array(jnp.unravel_index(i, [2] * self.N))
@@ -181,22 +165,70 @@ class IsingSpins(SpinConfigurationGeneratorBase):
             J_sparse=self.J_sparse,
         )
         samples = mcmc.get_samples()
-        return samples.reshape((-1, self.N))
+        samples.reshape((-1, self.N))
+        return (samples+1)//2
 
-    def probability(self, spin_configuration: ndarray) -> float:
+    def probability(self, x: ndarray) -> float:
+        """
+        compute the probability of a binary configuration x
+        Args:
+            x: binary configuration array
+        Returns:
+            (float): the probability of sampling x according to the ising distribution
+        """
+
+        if not(hasattr(self, 'Z')):
+            raise Exception('probability requires partition fuction to have been computed')
+
         return (
-            jnp.exp(-energy(spin_configuration, self.J, self.b, self.J_sparse) / self.T)
+            jnp.exp(-energy(x, self.J, self.b, self.J_sparse) / self.T)
             / self.Z
         )
 
-def generate_isometric_ising(
-    num_samples: int = 100, T: float = 2.5, grid_size: int = 4
-) -> (ndarray, None):
-    num_spins = grid_size * grid_size
-    num_chains = 2
-    num_steps = 1000
-    J = create_isotropic_interaction_matrix(grid_size)
-    model = IsingSpins(num_spins, J, b=1.0, T=T)
-    # Plot the magnetization and energy trajectories for a single T
-    samples = model.sample(num_samples*num_steps, num_chains=num_chains, num_warmup=10000, key=0)
-    return samples[-num_samples:], None
+def generate_ising(N: int,
+                   num_samples: int,
+                   J: jnp.array,
+                   b: jnp.array,
+                   T: float,
+                   sparse=False,
+                   num_chains=1,
+                   thinning=1,
+                   num_warmup=1000,
+                   key=42):
+    r"""
+    Generating function for ising datasets.
+
+    The dataset is generated by sampling an ising distrbution of a specified interaction
+    matrix. The distribution is sampled via markov chain Monte Carlo via the Metrolopis Hastings
+    algorithm.
+
+    In the case of perfect sampling, a spin configuration s is sampled with probabability
+    :math:`p(s)=exp(-H(s)/T)`, where the energy :math:`H(s)=\sum_{i\neq j}s_i s_i J_{ij}+\sum_i b_i s_i`
+    corresponds to an ising Hamiltonian and configurations s are :math:`\pm1` valued.
+
+    The final sampled configurations are converted from a :math:`\pm1` representation to to a binary
+    representation via x = (s+1)//2.
+
+    Note that in order to use parallelization, the number of avaliable cores has to be specified explicitly
+    to numpyro. i.e. the line `numpyro.set_host_device_count(num_cores)` should appear before running the
+    generator, where num_cores is the number of avaliable CPU cores you want to use.
+
+    N (int): Number of spins
+    num_samples (int): total number of samples to generate per chain
+    J (np.array): interaction matrix of shape (N,N)
+    b (np.array): bias array of shape (N,)
+    T (float): temperature
+    num_chains (int): number of chains, defaults to 1.
+    thinning (int): how much to thin the sampling. e.g. if thinning = 10 a sample will be drawn after each
+        10 steps of mcmc sampling. Larger numbers result in more unbiased samples.
+    num_warmup (int): number of mcmc 'burn in' steps to perform before collecting any samples.
+    key (int): random seed used to initialize sampling.
+    sparse (bool): If true, J is converted to a sparse representation (faster for sparse Hamiltonians)
+
+    Returns:
+        Array of data samples, and Nonetype object (since there are no labels)
+    """
+
+    sampler = IsingSpins(N, J, b, T, sparse=sparse, compute_partition_fn=False)
+    samples = sampler.sample(num_samples, num_chains=num_chains, thinning=thinning, num_warmup=num_warmup, key=key)
+    return samples, None
