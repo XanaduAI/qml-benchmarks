@@ -222,10 +222,9 @@ class MyModel(BaseEstimator):
 ```
 
 If the model samples binary data, it is recommended to construct models that sample binary strings (rather than $\pm1$ valued strings) 
-to align with the datasets designed for generative models. The repository currently contains two classical generative models:
-a restricted Boltzmann machine and a simple energy based model (called DeepEBM) that uses a multi-layer perceptron as its energy function. 
-Energy based models with more structure can easily be constructed by replacing the multilayer perception neural network by
-any other differentiable network written in flax. 
+to align with the datasets designed for generative models.
+Energy based models can easily be constructed by replacing the multilayer perceptron neural network in `DeepEBM` by
+any other differentiable network written in `flax`. 
 
 ## Datasets
 
