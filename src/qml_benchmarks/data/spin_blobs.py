@@ -16,6 +16,7 @@
 
 import numpy as np
 
+
 class RandomSpinBlobs:
     """
     Class object used to generate spin blob datasets: a binary analog of the
@@ -52,7 +53,6 @@ class RandomSpinBlobs:
         peak_spins: list[np.array] = None,
         p: float = 0.01,
     ) -> None:
-
         self.N = N
         self.num_blobs = num_blobs
 
@@ -119,9 +119,15 @@ class RandomSpinBlobs:
         else:
             return samples
 
-def generate_spin_blobs(N: int, num_blobs: int, num_samples:int, peak_probabilities: list[float] = None, peak_spins: list[np.array] = None,
-        p: float = 0.01):
 
+def generate_spin_blobs(
+    N: int,
+    num_blobs: int,
+    num_samples: int,
+    peak_probabilities: list[float] = None,
+    peak_spins: list[np.array] = None,
+    p: float = 0.01,
+):
     """
     Generator function for spin blob datasets: a binary analog of the
     'gaussian blobs' dataset, in which bitstrings are sampled close in Hamming

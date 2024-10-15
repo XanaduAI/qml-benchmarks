@@ -155,7 +155,7 @@ class EnergyBasedModel(BaseGenerator):
 
         # flip a random bit
         flip_idx = jax.random.choice(key1, jnp.arange(self.dim))
-        flip_config = jnp.zeros(self.dim, dtype='int32')
+        flip_config = jnp.zeros(self.dim, dtype="int32")
         flip_config = flip_config.at[flip_idx].set(1)
         x_flip = jnp.array((x + flip_config) % 2)
 
@@ -200,13 +200,15 @@ class EnergyBasedModel(BaseGenerator):
         )
 
         # chunk the sampling, otherwise the vmap can blow the memory
-        num_chunks = num_steps//max_chunk_size + 1
+        num_chunks = num_steps // max_chunk_size + 1
         x_init = jnp.array_split(x_init, num_chunks)
         keys = jnp.array_split(keys, num_chunks)
         configs = []
         for elem in zip(x_init, keys):
-            new_configs = self.batched_mcmc_sample(self.params_, elem[0], num_steps, elem[1])
-            configs.append(new_configs[:,-1])
+            new_configs = self.batched_mcmc_sample(
+                self.params_, elem[0], num_steps, elem[1]
+            )
+            configs.append(new_configs[:, -1])
 
         configs = jnp.concatenate(configs)
         return configs
