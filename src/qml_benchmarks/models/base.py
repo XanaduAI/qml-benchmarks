@@ -266,20 +266,3 @@ class EnergyBasedModel(BaseGenerator):
             y: labels (set to None for generative models to interface with sklearn functionality)
         """
         pass
-
-    # def score(self, X, y=None):
-    #     """Score the model on the given data.
-    #
-    #     Higher is better.
-    #     """
-    #     if self.params_ is None:
-    #         self.initialize(X.shape[1])
-    #
-    #     c_div_loss = (
-    #         jax.jit(self.contrastive_divergence_loss)
-    #         if self.jit
-    #         else self.contrastive_divergence_loss
-    #     )
-    #
-    #     return 1 - c_div_loss(self.params_, X, y, self.generate_key())
-
