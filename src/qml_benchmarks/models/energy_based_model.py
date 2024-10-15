@@ -15,7 +15,6 @@
 import flax.linen as nn
 from qml_benchmarks.models.base import EnergyBasedModel, BaseGenerator
 from sklearn.neural_network import BernoulliRBM
-from joblib import Parallel, delayed
 from qml_benchmarks.model_utils import mmd_loss, median_heuristic
 import numpy as np
 
@@ -172,7 +171,7 @@ class RestrictedBoltzmannMachine(BernoulliRBM, BaseGenerator):
         super().fit(X, y)
 
     # Gibbs sampling:
-    def _sample(self, num_steps=1000):
+    def _sample(self, init_config, num_steps=1000):
         """
         Sample the model for given number of steps via the .gibbs method of sklean's RBM. The initial configuration
         is sampled randomly.
@@ -185,9 +184,7 @@ class RestrictedBoltzmannMachine(BernoulliRBM, BaseGenerator):
         """
         if self.dim is None:
             raise ValueError("Model must be initialized before sampling")
-        v = self.rng.choice(
-            [0, 1], size=(self.dim,)
-        )  # Assuming `N` is `self.n_components`
+        v = init_config
         for _ in range(num_steps):
             v = self.gibbs(v)  # Assuming `gibbs` is an instance method
         return v
@@ -201,9 +198,8 @@ class RestrictedBoltzmannMachine(BernoulliRBM, BaseGenerator):
             num_steps (int): number of Gibbs sampling steps for each sample
             n_jobs (int): number of parallel jobs to be sent via joblib. By default, uses all avaliable cores.
         """
-        samples_t = Parallel(n_jobs=-1)(
-            delayed(self._sample)(num_steps=num_steps) for _ in range(num_samples)
-        )
+        init_configs = [self.rng.choice([0, 1], size=(self.dim,)) for __ in range(num_samples)]
+        samples_t = [self._sample(init_config, num_steps=num_steps) for init_config in init_configs]
         samples_t = np.array(samples_t, dtype=int)
         return samples_t
 
