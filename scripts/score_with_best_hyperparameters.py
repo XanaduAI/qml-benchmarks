@@ -12,7 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Score a model using the best hyperparameters, using a command-line script."""
+"""
+Score a model using the best hyperparameters, using a command-line script.
+Note this is only compatible with supervised models for classification.
+"""
+
 
 import numpy as np
 import sys
