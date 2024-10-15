@@ -14,7 +14,7 @@
 
 """
 Score a model using the best hyperparameters, using a command-line script.
-Note this is only compatible with classifier models.
+Note this is only compatible with supervised models for classification.
 """
 
 
