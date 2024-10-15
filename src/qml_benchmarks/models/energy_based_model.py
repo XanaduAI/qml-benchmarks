@@ -55,16 +55,18 @@ class DeepEBM(EnergyBasedModel):
             maximum mean discrepancy.
     """
 
-    def __init__(self,
-                 learning_rate=0.001,
-                 batch_size=32,
-                 max_steps=10000,
-                 cdiv_steps=1,
-                 convergence_interval=None,
-                 random_state=42,
-                 jit=True,
-                 hidden_layers=[8, 4],
-                 mmd_kwargs = {'n_samples': 1000, 'n_steps':1000, 'sigma': 1.0}):
+    def __init__(
+        self,
+        learning_rate=0.001,
+        batch_size=32,
+        max_steps=10000,
+        cdiv_steps=1,
+        convergence_interval=None,
+        random_state=42,
+        jit=True,
+        hidden_layers=[8, 4],
+        mmd_kwargs={"n_samples": 1000, "n_steps": 1000, "sigma": 1.0},
+    ):
         super().__init__(
             dim=None,
             learning_rate=learning_rate,
@@ -73,7 +75,7 @@ class DeepEBM(EnergyBasedModel):
             cdiv_steps=cdiv_steps,
             convergence_interval=convergence_interval,
             random_state=random_state,
-            jit=jit
+            jit=jit,
         )
         self.hidden_layers = hidden_layers
         self.mmd_kwargs = mmd_kwargs
@@ -107,10 +109,20 @@ class DeepEBM(EnergyBasedModel):
         Args:
             X (Array): batch of test samples to evalute the model against.
         """
-        sigma = self.mmd_kwargs['sigma']
+        sigma = self.mmd_kwargs["sigma"]
         sigmas = [sigma] if isinstance(sigma, (int, float)) else sigma
-        score = np.mean([mmd_loss(X, self.sample(self.mmd_kwargs['n_samples'],
-                                                 self.mmd_kwargs['n_steps']), sigma) for sigma in sigmas])
+        score = np.mean(
+            [
+                mmd_loss(
+                    X,
+                    self.sample(
+                        self.mmd_kwargs["n_samples"], self.mmd_kwargs["n_steps"]
+                    ),
+                    sigma,
+                )
+                for sigma in sigmas
+            ]
+        )
         return float(-score)
 
 
@@ -132,6 +144,7 @@ class RestrictedBoltzmannMachine(BernoulliRBM, BaseGenerator):
             maximum mean discrepancy.
 
     """
+
     def __init__(
         self,
         n_components=256,
@@ -140,8 +153,8 @@ class RestrictedBoltzmannMachine(BernoulliRBM, BaseGenerator):
         n_iter=10,
         verbose=0,
         random_state=42,
-        score_fn='pseudolikelihood',
-        mmd_kwargs ={'n_samples': 1000, 'n_steps': 1000, 'sigma': 1.0}
+        score_fn="pseudolikelihood",
+        mmd_kwargs={"n_samples": 1000, "n_steps": 1000, "sigma": 1.0},
     ):
         super().__init__(
             n_components=n_components,
@@ -198,22 +211,37 @@ class RestrictedBoltzmannMachine(BernoulliRBM, BaseGenerator):
             num_steps (int): number of Gibbs sampling steps for each sample
             n_jobs (int): number of parallel jobs to be sent via joblib. By default, uses all avaliable cores.
         """
-        init_configs = [self.rng.choice([0, 1], size=(self.dim,)) for __ in range(num_samples)]
-        samples_t = [self._sample(init_config, num_steps=num_steps) for init_config in init_configs]
+        init_configs = [
+            self.rng.choice([0, 1], size=(self.dim,)) for __ in range(num_samples)
+        ]
+        samples_t = [
+            self._sample(init_config, num_steps=num_steps)
+            for init_config in init_configs
+        ]
         samples_t = np.array(samples_t, dtype=int)
         return samples_t
 
-    def score(self, X: np.ndarray, y: np.ndarray=None) -> float:
+    def score(self, X: np.ndarray, y: np.ndarray = None) -> float:
         """
         Score function for hyperparameter optimization.
         Args:
             X (Array): batch of test samples to evalute the model against.
-                """
-        if self.score_fn == 'pseudolikelihood':
+        """
+        if self.score_fn == "pseudolikelihood":
             return float(np.mean(super().score_samples(X)))
-        elif self.score_fn == 'mmd':
-            sigma = self.mmd_kwargs['sigma']
+        elif self.score_fn == "mmd":
+            sigma = self.mmd_kwargs["sigma"]
             sigmas = [sigma] if isinstance(sigma, (int, float)) else sigma
-            score = np.mean([mmd_loss(X, self.sample(self.mmd_kwargs['n_samples'],
-                                                     self.mmd_kwargs['n_steps']), sigma) for sigma in sigmas])
+            score = np.mean(
+                [
+                    mmd_loss(
+                        X,
+                        self.sample(
+                            self.mmd_kwargs["n_samples"], self.mmd_kwargs["n_steps"]
+                        ),
+                        sigma,
+                    )
+                    for sigma in sigmas
+                ]
+            )
             return float(-score)

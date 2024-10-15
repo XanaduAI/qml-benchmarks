@@ -10,6 +10,7 @@ from collections import namedtuple
 from numpyro.infer.mcmc import MCMCKernel
 from tqdm.auto import tqdm
 
+
 @jax.jit
 def energy(s, J, b, J_sparse=None):
     """Calculate the Ising energy. For sparse Hamiltonians, it is recommneded to supply a list of nonzero indices of
@@ -27,6 +28,7 @@ def energy(s, J, b, J_sparse=None):
     else:
         return -jnp.einsum("i,j,ij->", s, s, J) / 2.0 - jnp.dot(s, b)
 
+
 def initialize_spins(rng_key, num_spins, num_chains):
     if num_chains == 1:
         spins = random.bernoulli(rng_key, 0.5, (num_spins,))
@@ -43,6 +45,7 @@ def initialize_spins(rng_key, num_spins, num_chains):
 
 
 MHState = namedtuple("MHState", ["spins", "rng_key"])
+
 
 class MetropolisHastings(MCMCKernel):
     """An implementation of MCMC using Numpyro, see example in
@@ -114,10 +117,16 @@ class IsingSpins:
     sparse (bool): If true, J is converted to a sparse representation (faster for sparse Hamiltonians)
     compute_partition_fn: Whether to compute the partition function
     """
-    def __init__(
-        self, N: int, J: jnp.array, b: jnp.array, T: float, sparse=False, compute_partition_fn=False
-    ) -> None:
 
+    def __init__(
+        self,
+        N: int,
+        J: jnp.array,
+        b: jnp.array,
+        T: float,
+        sparse=False,
+        compute_partition_fn=False,
+    ) -> None:
         self.N = N
         self.kernel = MetropolisHastings()
         self.J = J
@@ -136,7 +145,6 @@ class IsingSpins:
     def sample(
         self, num_samples: int, num_chains=1, thinning=1, num_warmup=1000, key=42
     ) -> jnp.array:
-
         """
         Generate samples.
         Args:
@@ -166,7 +174,7 @@ class IsingSpins:
         )
         samples = mcmc.get_samples()
         samples.reshape((-1, self.N))
-        return (samples+1)//2
+        return (samples + 1) // 2
 
     def probability(self, x: ndarray) -> float:
         """
@@ -177,24 +185,26 @@ class IsingSpins:
             (float): the probability of sampling x according to the ising distribution
         """
 
-        if not(hasattr(self, 'Z')):
-            raise Exception('probability requires partition fuction to have been computed')
+        if not (hasattr(self, "Z")):
+            raise Exception(
+                "probability requires partition fuction to have been computed"
+            )
 
-        return (
-            jnp.exp(-energy(x, self.J, self.b, self.J_sparse) / self.T)
-            / self.Z
-        )
+        return jnp.exp(-energy(x, self.J, self.b, self.J_sparse) / self.T) / self.Z
 
-def generate_ising(N: int,
-                   num_samples: int,
-                   J: jnp.array,
-                   b: jnp.array,
-                   T: float,
-                   sparse=False,
-                   num_chains=1,
-                   thinning=1,
-                   num_warmup=1000,
-                   key=42):
+
+def generate_ising(
+    N: int,
+    num_samples: int,
+    J: jnp.array,
+    b: jnp.array,
+    T: float,
+    sparse=False,
+    num_chains=1,
+    thinning=1,
+    num_warmup=1000,
+    key=42,
+):
     r"""
     Generating function for Ising datasets.
 
@@ -230,5 +240,11 @@ def generate_ising(N: int,
     """
 
     sampler = IsingSpins(N, J, b, T, sparse=sparse, compute_partition_fn=False)
-    samples = sampler.sample(num_samples, num_chains=num_chains, thinning=thinning, num_warmup=num_warmup, key=key)
+    samples = sampler.sample(
+        num_samples,
+        num_chains=num_chains,
+        thinning=thinning,
+        num_warmup=num_warmup,
+        key=key,
+    )
     return samples, None

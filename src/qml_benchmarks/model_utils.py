@@ -27,6 +27,7 @@ from sklearn.utils import gen_batches
 import inspect
 from tqdm import tqdm
 
+
 def train(
     model, loss_fn, optimizer, X, y, random_key_generator, convergence_interval=200
 ):
@@ -62,8 +63,10 @@ def train(
 
     # wrap a key around the function if it doesn't have one
     if "key" not in inspect.signature(loss_fn).parameters:
+
         def loss_fn_wrapped(params, x, y, key):
             return loss_fn(params, x, y)
+
     else:
         loss_fn_wrapped = loss_fn
 
@@ -79,8 +82,14 @@ def train(
 
     # note: assumes that the loss function is a sample mean of
     # some function over the input data set
-    chunked_grad_fn = chunk_grad(grad_fn, model.max_vmap) if model.max_vmap is not None else grad_fn
-    chunked_loss_fn = chunk_loss(loss_fn_wrapped, model.max_vmap) if model.max_vmap is not None else loss_fn_wrapped
+    chunked_grad_fn = (
+        chunk_grad(grad_fn, model.max_vmap) if model.max_vmap is not None else grad_fn
+    )
+    chunked_loss_fn = (
+        chunk_loss(loss_fn_wrapped, model.max_vmap)
+        if model.max_vmap is not None
+        else loss_fn_wrapped
+    )
 
     def update(params, opt_state, x, y, key):
         grads = chunked_grad_fn(params, x, y, key)
@@ -97,7 +106,9 @@ def train(
             key_batch = random_key_generator()
             key_loss = jax.random.split(key_batch, 1)[0]
             X_batch, y_batch = get_batch(X, y, key_batch, batch_size=model.batch_size)
-            params, opt_state, loss_val = update(params, opt_state, X_batch, y_batch, key_loss)
+            params, opt_state, loss_val = update(
+                params, opt_state, X_batch, y_batch, key_loss
+            )
             loss_history.append(loss_val)
             logging.debug(f"{step} - loss: {loss_val}")
             pbar.update(1)
@@ -116,7 +127,10 @@ def train(
                     )
                     std1 = np.std(loss_history[-convergence_interval:])
                     # if the difference in averages is small compared to the statistical fluctuations, stop training.
-                    if np.abs(average2 - average1) <= std1 / np.sqrt(convergence_interval) / 2:
+                    if (
+                        np.abs(average2 - average1)
+                        <= std1 / np.sqrt(convergence_interval) / 2
+                    ):
                         logging.info(
                             f"Model {model.__class__.__name__} converged after {step} steps."
                         )
@@ -125,7 +139,7 @@ def train(
 
     end = time.time()
     loss_history = np.array(loss_history)
-    model.loss_history_ = loss_history  / np.max(np.abs(loss_history))
+    model.loss_history_ = loss_history / np.max(np.abs(loss_history))
     model.training_time_ = end - start
 
     if not converged and convergence_interval is not None:
@@ -160,8 +174,6 @@ def get_batch(X, y, rnd_key, batch_size=32):
         return X[rnd_indices], y[rnd_indices]
     else:
         return X[rnd_indices], None
-
-
 
 
 def get_from_dict(dict, key_list):
@@ -312,7 +324,10 @@ def chunk_loss(loss_fn, max_vmap):
 
     return chunked_loss
 
-def mmd_loss(ground_truth: np.ndarray, model_samples: np.ndarray, sigma: float) -> float:
+
+def mmd_loss(
+    ground_truth: np.ndarray, model_samples: np.ndarray, sigma: float
+) -> float:
     """Calculates an unbiased estimate of the Maximum Mean Discrepancy (MMD) loss from samples
     see https://jmlr.org/papers/volume13/gretton12a/gretton12a.pdf for more info
 
@@ -332,32 +347,48 @@ def mmd_loss(ground_truth: np.ndarray, model_samples: np.ndarray, sigma: float) 
 
     # K_pp
     K_pp = jnp.zeros((ground_truth.shape[0], ground_truth.shape[0]))
+
     def body_fun(i, val):
         def inner_body_fun(j, inner_val):
-            return inner_val.at[i, j].set(gaussian_kernel(sigma, ground_truth[i], ground_truth[j]))
+            return inner_val.at[i, j].set(
+                gaussian_kernel(sigma, ground_truth[i], ground_truth[j])
+            )
+
         return jax.lax.fori_loop(0, ground_truth.shape[0], inner_body_fun, val)
+
     K_pp = jax.lax.fori_loop(0, ground_truth.shape[0], body_fun, K_pp)
     sum_pp = jnp.sum(K_pp) - n
 
     # K_pq
     K_pq = jnp.zeros((ground_truth.shape[0], model_samples.shape[0]))
+
     def body_fun(i, val):
         def inner_body_fun(j, inner_val):
-            return inner_val.at[i, j].set(gaussian_kernel(sigma, ground_truth[i], model_samples[j]))
+            return inner_val.at[i, j].set(
+                gaussian_kernel(sigma, ground_truth[i], model_samples[j])
+            )
+
         return jax.lax.fori_loop(0, model_samples.shape[0], inner_body_fun, val)
+
     K_pq = jax.lax.fori_loop(0, ground_truth.shape[0], body_fun, K_pq)
     sum_pq = jnp.sum(K_pq)
 
     # K_qq
     K_qq = jnp.zeros((model_samples.shape[0], model_samples.shape[0]))
+
     def body_fun(i, val):
         def inner_body_fun(j, inner_val):
-            return inner_val.at[i, j].set(gaussian_kernel(sigma, model_samples[i], model_samples[j]))
+            return inner_val.at[i, j].set(
+                gaussian_kernel(sigma, model_samples[i], model_samples[j])
+            )
+
         return jax.lax.fori_loop(0, model_samples.shape[0], inner_body_fun, val)
+
     K_qq = jax.lax.fori_loop(0, model_samples.shape[0], body_fun, K_qq)
     sum_qq = jnp.sum(K_qq) - m
 
-    return 1/n/(n-1) * sum_pp - 2/n/m * sum_pq + 1/m/(m-1) * sum_qq
+    return 1 / n / (n - 1) * sum_pp - 2 / n / m * sum_pq + 1 / m / (m - 1) * sum_qq
+
 
 def gaussian_kernel(sigma: float, x: np.ndarray, y: np.ndarray) -> float:
     """Calculates the value for the gaussian kernel between two vectors x, y
@@ -370,7 +401,8 @@ def gaussian_kernel(sigma: float, x: np.ndarray, y: np.ndarray) -> float:
     Returns:
         float: Result value of the gaussian kernel
     """
-    return jnp.exp(-((x-y)**2).sum()/2/sigma)
+    return jnp.exp(-((x - y) ** 2).sum() / 2 / sigma)
+
 
 def median_heuristic(X):
     """
@@ -381,5 +413,7 @@ def median_heuristic(X):
     """
     m = len(X)
     X = np.array(X)
-    med = np.median([np.sqrt(np.sum((X[i] - X[j]) ** 2)) for i in range(m) for j in range(m)])
+    med = np.median(
+        [np.sqrt(np.sum((X[i] - X[j]) ** 2)) for i in range(m) for j in range(m)]
+    )
     return med
