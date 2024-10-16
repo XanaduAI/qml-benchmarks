@@ -184,7 +184,7 @@ class RestrictedBoltzmannMachine(BernoulliRBM, BaseGenerator):
         super().fit(X, y)
 
     # Gibbs sampling:
-    def _sample(self, init_config, num_steps=1000):
+    def _sample(self, init_configs, num_steps=1000):
         """
         Sample the model for given number of steps via the .gibbs method of sklean's RBM. The initial configuration
         is sampled randomly.
@@ -197,7 +197,7 @@ class RestrictedBoltzmannMachine(BernoulliRBM, BaseGenerator):
         """
         if self.dim is None:
             raise ValueError("Model must be initialized before sampling")
-        v = init_config
+        v = init_configs
         for _ in range(num_steps):
             v = self.gibbs(v)  # Assuming `gibbs` is an instance method
         return v
@@ -210,13 +210,8 @@ class RestrictedBoltzmannMachine(BernoulliRBM, BaseGenerator):
             num_samples (int): number of samples to return
             num_steps (int): number of Gibbs sampling steps for each sample
         """
-        init_configs = [
-            self.rng.choice([0, 1], size=(self.dim,)) for __ in range(num_samples)
-        ]
-        samples_t = [
-            self._sample(init_config, num_steps=num_steps)
-            for init_config in init_configs
-        ]
+        init_configs = self.rng.choice([0, 1], size=(num_samples, self.dim,))
+        samples_t = self._sample(init_configs, num_steps=num_steps)
         samples_t = np.array(samples_t, dtype=int)
         return samples_t
 
