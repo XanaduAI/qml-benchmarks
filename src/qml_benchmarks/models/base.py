@@ -23,6 +23,7 @@ import numpy as np
 import optax
 from qml_benchmarks.model_utils import train
 from sklearn.base import BaseEstimator
+import itertools
 
 
 class BaseGenerator(BaseEstimator):
@@ -117,6 +118,7 @@ class EnergyBasedModel(BaseGenerator):
         # data depended attributes
         self.params_: dict[str : jnp.array] = None
         self.dim = dim  # initialized to None
+        self.partition_function = None
 
         # Train dependent attributes that the function train in self.fit() sets.
         self.history_: list[float] = None
@@ -174,6 +176,49 @@ class EnergyBasedModel(BaseGenerator):
         carry = [params, key, x_init]
         carry, configs = jax.lax.scan(self.mcmc_step, carry, jnp.arange(num_mcmc_steps))
         return configs
+
+    def compute_partition_function(self):
+        """
+        computes the partition function. Note this scales exponentially with the number of features and
+        is therefore only suitable for small models
+        """
+
+        print('computing partition fn...')
+
+        def increment_partition_fn(i, val):
+            x = all_bitstrings[i]
+            return val + jnp.exp(-self.energy(self.params_, x)[0])
+
+        all_bitstrings = jnp.array(list(itertools.product([0, 1], repeat=self.dim )))
+
+        self.partition_function = jax.lax.fori_loop(0, all_bitstrings.shape[0], increment_partition_fn, 0)
+
+        return self.partition_function
+
+    def probability(self, x):
+        """
+        Compute the probability of a configuration. Requires computation of partition function and is
+        therefore only suitable for small models.
+        Args:
+            x (np.array): A configuration
+        """
+
+        if not(hasattr(self, 'partition_function')):
+            self.compute_partition_function()
+
+        return jnp.exp(-self.energy(self.params_, x)[0]) / self.partition_function
+
+    def probabilities(self):
+        """
+        Compute all probabilities. Requires computation of partition function and is
+        therefore only suitable for small models.
+        """
+        @jax.jit
+        def prob(x):
+            return self.probability(x)
+
+        all_bitstrings = jnp.array(list(itertools.product([0, 1], repeat=self.dim)))
+        return jnp.array([prob(x) for x in all_bitstrings])
 
     def sample(self, num_samples, num_steps=1000, max_chunk_size=100):
         """
