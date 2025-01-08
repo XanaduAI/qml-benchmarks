@@ -17,7 +17,9 @@ from qml_benchmarks.models.base import EnergyBasedModel, BaseGenerator
 from sklearn.neural_network import BernoulliRBM
 from qml_benchmarks.model_utils import mmd_loss, median_heuristic
 import numpy as np
-
+import jax
+import jax.numpy as jnp
+import itertools
 
 class MLP(nn.Module):
     "Multilayer perceptron implemented in flax"
@@ -214,6 +216,66 @@ class RestrictedBoltzmannMachine(BernoulliRBM, BaseGenerator):
         samples_t = self._sample(init_configs, num_steps=num_steps)
         samples_t = np.array(samples_t, dtype=int)
         return samples_t
+
+    def energy(self, v, h):
+        """
+        The energy for a given visible and hidden configuration
+        Args:
+            v (np.array): visible configuration
+            h (np.array): hidden configuration
+        """
+        c = jnp.array(self.intercept_hidden_)
+        b = jnp.array(self.intercept_visible_)
+        W = jnp.array(self.components_)
+        return - h @ W @ v - jnp.dot(b, v) - jnp.dot(c, h)
+
+    def compute_partition_function(self):
+        """
+        computes the partition function. Note this scales exponentially with the total number of neurons and
+        is therefore only suitable for small models
+        """
+
+        print('computing partition fn...')
+
+        def increment_partition_fn(i, val):
+            v = all_bitstrings[i, :self.dim]
+            h = all_bitstrings[i, self.dim:]
+            return val + jnp.exp(-self.energy(v, h))
+
+        all_bitstrings = jnp.array(list(itertools.product([0, 1], repeat=self.dim + self.n_components)))
+
+        self.partition_function = jax.lax.fori_loop(0, all_bitstrings.shape[0], increment_partition_fn, 0)
+
+        return self.partition_function
+
+    def probability(self, v):
+        """
+        Compute the probability of a visible configuration. Requires computation of partition function and is
+        therefore only suitable for small models.
+        Args:
+            v (np.array): A visible configuration
+        """
+        def increment_visible_prob(i, val):
+            return val + jnp.exp(-self.energy(v, hidden_bitstrings[i]))
+
+        if not(hasattr(self, 'partition_function')):
+            self.compute_partition_function()
+
+        hidden_bitstrings = jnp.array(list(itertools.product([0, 1], repeat=self.n_components)))
+        hidden_sum = jax.lax.fori_loop(0, hidden_bitstrings.shape[0], increment_visible_prob, 0)
+        return hidden_sum / self.partition_function
+
+    def visible_probabilities(self):
+        """
+        Compute all visible probabilities. Requires computation of partition function and is
+        therefore only suitable for small models.
+        """
+        @jax.jit
+        def prob(v):
+            return self.probability(v)
+
+        visible_bitstrings = jnp.array(list(itertools.product([0, 1], repeat=self.dim)))
+        return np.array([prob(v) for v in visible_bitstrings])
 
     def score(self, X: np.ndarray, y: np.ndarray = None) -> float:
         """
