@@ -203,7 +203,7 @@ class EnergyBasedModel(BaseGenerator):
             x (np.array): A configuration
         """
 
-        if not(hasattr(self, 'partition_function')):
+        if self.partition_function is None:
             self.compute_partition_function()
 
         return jnp.exp(-self.energy(self.params_, x)[0]) / self.partition_function
