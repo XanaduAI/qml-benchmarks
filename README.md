@@ -1,7 +1,7 @@
 # Benchmarking for quantum machine learning models
 
 This repository contains tools to compare the performance of near-term quantum machine learning (QML)
-as well as standard classical machine learning models on supervised learning tasks. 
+as well as standard classical machine learning models on supervised and generative learning tasks. 
 
 It is based on pipelines using [Pennylane](https://pennylane.ai/) for the simulation of quantum circuits, 
 [JAX](https://jax.readthedocs.io/en/latest/index.html) for training, 
@@ -39,12 +39,12 @@ Dependencies of this package can be installed in your environment by running
 pip install -r requirements.txt
 ```
 
-## Adding a custom model
+## Adding a custom classifier
 
 We use the [Scikit-learn API](https://scikit-learn.org/stable/developers/develop.html) to create 
 models and perform hyperparameter search.
 
-A minimal template for a new quantum model is as follows, and can be stored 
+A minimal template for a new quantum classifier is as follows, and can be stored 
 in `qml_benchmarks/models/my_model.py`:
 
 ```python
@@ -61,18 +61,23 @@ class MyModel(BaseEstimator, ClassifierMixin):
                     
         # reproducibility is ensured by creating a numpy PRNG and using it for all
         # subsequent random functions. 
-        self._random_state = random_state
-        self._rng = np.random.default_rng(random_state)
+        self.random_state = random_state
+        self.rng = np.random.default_rng(random_state)
             
         # define data-dependent attributes
         self.params_ = None
         self.n_qubits_ = None
+        
+    def initialize(self, args):
+        """
+        initialize the model if necessary
+        """
+        # ... your code here ...   
 
     def fit(self, X, y):
         """Fit the model to data X and labels y.
 
         Add your custom training loop here and store the trained model parameters in `self.params_`.
-        Set the data-dependent attributes, such as `self.n_qubits_`.
         
         Args:
             X (array_like): Data of shape (n_samples, n_features)
@@ -146,9 +151,86 @@ model.fit(X_train, y_train)
 print(model.score(X_test, y_test))
 ```
 
+
+## Adding a custom generative model
+
+The minimal template for a new generative model closely follows that of the classifier models.
+Labels are set to `None` throughout to maintain sci-kit learn functionality. 
+
+```python
+import numpy as np
+
+from sklearn.base import BaseEstimator
+
+
+class MyModel(BaseEstimator):
+    def __init__(self, hyperparam1="some_value",  random_state=42):
+
+        # store hyperparameters as attributes
+        self.hyperparam1 = hyperparam1
+                    
+        # reproducibility is ensured by creating a numpy PRNG and using it for all
+        # subsequent random functions. 
+        self.random_state = random_state
+        self.rng = np.random.default_rng(random_state)
+            
+        # define data-dependent attributes
+        self.params_ = None
+        self.n_qubits_ = None
+        
+    def initialize(self, args):
+        """
+        initialize the model if necessary
+        """
+        # ... your code here ...   
+
+    def fit(self, X, y=None):
+        """Fit the model to data X.
+
+        Add your custom training loop here and store the trained model parameters in `self.params_`.
+        
+        Args:
+            X (array_like): Data of shape (n_samples, n_features)
+            y (array_like): not used (no labels)
+        """
+        # ... your code here ...        
+
+    def sample(self, num_samples):
+        """sample from the generative model
+        
+        Args:
+            num_samples (int): number of points to sample
+        
+        Returns:
+            array_like: sampled points
+        """
+        # ... your code here ...
+        
+        return samples
+
+    def score(self, X, y=None):
+        """A optional custom score function to be used with hyperparameter optimization
+        Args:
+            X (array_like): Data of shape (n_samples, n_features)
+            y: unused (no labels for generative models)
+
+        Returns:
+            (float): score for the dataset X
+        """
+        # ... your code here ...
+        return score
+```
+
+If the model samples binary data, it is recommended to construct models that sample binary strings (rather than $\pm1$ valued strings) 
+to align with the datasets designed for generative models.
+Energy based models can easily be constructed by replacing the multilayer perceptron neural network in `DeepEBM` by
+any other differentiable network written in `flax`. 
+
 ## Datasets
 
-The `qml_benchmarks.data` module provides generating functions to create datasets for binary classification. 
+The `qml_benchmarks.data` module provides generating functions to create datasets for binary classification and
+generative learning.
+
 A generating function can be used like this:
 
 ```python
@@ -158,7 +240,7 @@ X, y = generate_two_curves(n_samples=200, n_features=4, degree=3, noise=0.1, off
 ```
 
 Note that some datasets might have different return data structures, for example if the train/test split 
-is performed by the generating function.
+is performed by the generating function. If the dataset does not include labels, `y = None` is returned. 
 
 The original datasets used in the paper can be generated by running the scripts in the `paper/benchmarks` folder, 
 such as:
@@ -172,15 +254,18 @@ This will create a new folder in `paper/benchmarks` containing the datasets.
 ## Running hyperparameter optimization
 
 In the folder `scripts` we provide an example that can be used to
-generate results for a hyperparameter search for any model and dataset. The script
+generate results for a hyperparameter search for any model and dataset. The script functions
+for both classifier and generative models. The script
 can be run as
 
 ```
-python run_hyperparameter_search.py --classifier-name "DataReuploadingClassifier" --dataset-path "my_dataset.csv"
+python run_hyperparameter_search.py --model "DataReuploadingClassifier" --dataset-path "my_dataset.csv"
 ```
 
-where `my_dataset.csv` is a CSV file containing the training data such that each column is a feature
-and the last column is the target.
+where`my_dataset.csv` is a CSV file containing the training data. For classification problems, each column should 
+correspond to a feature and the last column to the target. For generative learning, each row
+should correspond to a binary string that specifies a unique data sample, and the model should implement a `score`
+method. 
 
 Unless otherwise specified, the hyperparameter grid is loaded from `qml_benchmarks/hyperparameter_settings.py`.
 One can override the default grid of hyperparameters by specifying the hyperparameter list,
@@ -189,7 +274,7 @@ For example, for the `DataReuploadingClassifier` we can run:
 
 ```
 python run_hyperparameter_search.py \
-    --classifier-name DataReuploadingClassifier \
+    --model DataReuploadingClassifier \
     --dataset-path "my_dataset.csv" \
     --n_layers 1 2 \
     --observable_type "single" "full"\

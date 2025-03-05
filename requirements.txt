@@ -10,3 +10,4 @@ pyyaml~=6.0
 pennyLane~=0.34
 scipy~=1.11
 pandas~=2.2
+numpyro~=0.14.0
