@@ -187,10 +187,10 @@ class IsingSpins:
 
         if not (hasattr(self, "Z")):
             raise Exception(
-                "probability requires partition fuction to have been computed"
+                "probability requires partition function to have been computed"
             )
 
-        return jnp.exp(-energy(x, self.J, self.b, self.J_sparse) / self.T) / self.Z
+        return jnp.exp(-energy(2*x-1, self.J, self.b, self.J_sparse) / self.T) / self.Z
 
 
 def generate_ising(
