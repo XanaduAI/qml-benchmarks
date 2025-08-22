@@ -394,14 +394,14 @@ def gaussian_kernel(sigma: float, x: np.ndarray, y: np.ndarray) -> float:
     """Calculates the value for the gaussian kernel between two vectors x, y
 
     Args:
-        sigma (float): sigma parameter, the width of the kernel
+        sigma (float): The standard deviation of the Gaussian defining the kernel function
         x (np.ndarray): one of the vectors
         y (np.ndarray): the other vector
 
     Returns:
         float: Result value of the gaussian kernel
     """
-    return jnp.exp(-((x - y) ** 2).sum() / 2 / sigma)
+    return jnp.exp(-((x - y) ** 2).sum() / 2 / sigma**2)
 
 
 def median_heuristic(X):
@@ -413,7 +413,5 @@ def median_heuristic(X):
     """
     m = len(X)
     X = np.array(X)
-    med = np.median(
-        [np.sqrt(np.sum((X[i] - X[j]) ** 2)) for i in range(m) for j in range(m)]
-    )
+    med = np.median([np.sqrt(np.sum((X[i] - X[j]) ** 2)) for i in range(m) for j in range(m)])
     return med
